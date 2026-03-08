@@ -44,3 +44,36 @@ All tools are built for:
 | macOS | Intel (amd64), Apple Silicon (arm64) |
 | Linux | amd64, arm64 |
 | Windows | amd64 |
+
+## Adding a new tool
+
+Each tool gets its own folder with docs:
+
+```
+<tool>/
+├── README.md               # What it is, when to use it, install, quick start
+└── docs/
+    ├── SKILL.md             # Full usage guide (all commands, workflows, examples)
+    └── <other>.md           # Additional reference docs as needed
+```
+
+Steps:
+
+1. Create `<tool>/README.md` and `<tool>/docs/SKILL.md` (copy from source, fix install line to use eget)
+2. Add the tool to the table above
+3. Commit and push
+
+## Releasing a version
+
+Binaries are cross-compiled locally and uploaded via `gh`:
+
+```bash
+./scripts/release.sh <source-dir> <tool> <version>
+
+# Example
+./scripts/release.sh ../go-training-range/sotto sotto v0.2.0
+```
+
+This builds static binaries for all 5 platforms, packages them, generates checksums, and creates a GitHub release tagged `<tool>/<version>`.
+
+Requires `go` and `gh` (authenticated to the svilupp account).
