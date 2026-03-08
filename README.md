@@ -29,6 +29,7 @@ export PATH="$HOME/.local/bin:$PATH"
 | [notion](notion/) | Notion API CLI with profiles and OAuth | `eget svilupp/go-utils-depot --tag 'notion/*'` |
 | [linear](linear/) | Linear API CLI for tickets and comments | `eget svilupp/go-utils-depot --tag 'linear/*'` |
 | [wipd](wipd/) | Per-folder task tracker for AI agents | `eget svilupp/go-utils-depot --tag 'wipd/*'` |
+| [logfire-trace](logfire-trace/) | Logfire trace downloader, viewer, and AI conversation replayer | `eget svilupp/go-utils-depot --tag 'logfire-trace/*'` |
 
 ## Updating
 
