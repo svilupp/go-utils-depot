@@ -26,6 +26,8 @@ export PATH="$HOME/.local/bin:$PATH"
 | Tool | Description | Install |
 |------|-------------|---------|
 | [sotto](sotto/) | Local-first encrypted secrets CLI | `eget svilupp/go-utils-depot --tag 'sotto/*'` |
+| [notion](notion/) | Notion API CLI with profiles and OAuth | `eget svilupp/go-utils-depot --tag 'notion/*'` |
+| [linear](linear/) | Linear API CLI for tickets and comments | `eget svilupp/go-utils-depot --tag 'linear/*'` |
 
 ## Updating
 
@@ -52,6 +54,7 @@ Each tool gets its own folder with docs:
 ```
 <tool>/
 ├── README.md               # What it is, when to use it, install, quick start
+├── CHANGELOG.md             # Keep a Changelog format
 └── docs/
     ├── SKILL.md             # Full usage guide (all commands, workflows, examples)
     └── <other>.md           # Additional reference docs as needed
@@ -70,8 +73,10 @@ Binaries are cross-compiled locally and uploaded via `gh`:
 ```bash
 ./scripts/release.sh <source-dir> <tool> <version>
 
-# Example
-./scripts/release.sh ../go-training-range/sotto sotto v0.2.0
+# Examples
+./scripts/release.sh ../path-to-source/sotto sotto v0.2.0
+./scripts/release.sh ../path-to-source/notion notion v0.1.0
+./scripts/release.sh ../path-to-source/linear linear v0.3.0
 ```
 
 This builds static binaries for all 5 platforms, packages them, generates checksums, and creates a GitHub release tagged `<tool>/<version>`.
