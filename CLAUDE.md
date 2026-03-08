@@ -1,6 +1,6 @@
 # go-utils-depot
 
-Public binary distribution repo. Source code lives in `go-training-range/`.
+Public binary distribution repo for Go CLI tools.
 
 ## Adding a new tool
 
