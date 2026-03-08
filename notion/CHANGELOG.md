@@ -10,10 +10,4 @@ Keep it brief!
 ## [0.1.0] - 2026-03-08
 
 ### Added
-- First release
-- Search, page, block, datasource, database, user, comment commands
-- Multi-workspace profiles with API key, public OAuth, and hosted MCP OAuth
-- Hosted Notion MCP tool surface (1:1 parity)
-- Cursor-based pagination with `--all`
-- Output to file with `-o`
-- Markdown, JSON, and table output formats
+- First release: full Notion API surface, multi-workspace profiles, hosted MCP parity

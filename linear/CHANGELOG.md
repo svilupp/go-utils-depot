@@ -10,9 +10,4 @@ Keep it brief!
 ## [0.3.0] - 2026-03-08
 
 ### Added
-- First release
-- Get, create, comment commands
-- Summary and JSON output formats
-- Config with `${VAR}` expansion and env var fallbacks
-- URL and direct ID identifier parsing
-- File-based description and comment input
+- First release: get, create, comment with summary/JSON output

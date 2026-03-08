@@ -10,11 +10,4 @@ Keep it brief!
 ## [0.2.0] - 2026-03-08
 
 ### Added
-- First release
-- Encrypted local vault (age + scrypt)
-- Profile/project/global scoping with dotted project inheritance
-- Context detection from flags, env, and `.sotto.toml`
-- Commands: init, set, get, del, list, status, env, import, wrap
-- Ephemeral tokens (sottok_*) with TTL and use limits
-- Node abstraction with local and remote-ready config
-- Subprocess secret injection via `sotto env --`
+- First release: encrypted local vault, profile/project scoping, ephemeral tokens, subprocess injection

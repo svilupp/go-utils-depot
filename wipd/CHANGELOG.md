@@ -10,10 +10,4 @@ Keep it brief!
 ## [0.1.0] - 2026-03-08
 
 ### Added
-- First release
-- Task workflow: take, done, drop, status, list, clear
-- Inter-agent messaging: mail send/read/list, inbox
-- Atomic task claiming with file-level locking
-- Worker ID detection from WIPD_WORKER and CLOOP_WORKER_ID
-- JSONL storage with dual-lock concurrency
-- Confirmation flags for destructive commands
+- First release: task claiming, inter-agent messaging, file-level locking
