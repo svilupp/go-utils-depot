@@ -41,6 +41,14 @@ sotto set openai-api-key sk-test-123
 sotto get openai-api-key --stdout
 ```
 
+AI agents and long-running sessions:
+
+```bash
+sotto unlock --ttl 1h            # unlock once, agents read freely
+sotto get openai-api-key --stdout  # no passphrase prompt needed
+sotto lock                        # end session when done
+```
+
 ## How it works
 
 Secrets live in an encrypted vault (`~/.config/sotto/vault.age`) using [age](https://age-encryption.org/) encryption (AES-256-GCM + scrypt). Each secret is scoped by profile (who you are) and project (what you're working on).
@@ -82,11 +90,14 @@ sotto env -- docker compose up
 | Command | What it does |
 |---------|-------------|
 | `init` | Create vault and config |
-| `set <key>` | Store or update a secret |
-| `get <key>` | Retrieve (clipboard by default, `--stdout` for scripts) |
+| `set <key>` | Store or update a secret (`--file`/`--stdin-json` for bulk) |
+| `get [<key>]` | Retrieve (clipboard default, `--stdout` for scripts, no key = profile dump) |
 | `del <key>` | Delete a secret |
-| `list` | Show metadata (values hidden) |
-| `status` | Show config, node, and context |
+| `list` | Show metadata (values hidden, `--tag` to filter) |
+| `search <term>` | Search key names (no passphrase needed) |
+| `unlock` | Start a session for non-interactive access (`--ttl`, `--read-only`) |
+| `lock` | End the active session |
+| `status` | Show config, node, context, and session info |
 | `env` | Export secrets from `.sotto.toml` `[env]` section |
 | `import` | Bulk import from `.env` files |
 | `wrap` | Create a time-limited token (`sottok_*`) |
@@ -116,9 +127,10 @@ path = "~/.config/sotto/vault.age"
 ## Security
 
 - Encrypted at rest (age + scrypt), vault file permissions 0600
-- `list` and `status` never show values
+- `list`, `search`, and `status` never show values
 - `get` copies to clipboard interactively; requires `--stdout` for piping
 - Atomic writes (temp file + rename)
+- Session daemon holds passphrase in memory only (never written to disk), Unix socket with 0600 permissions, mandatory TTL (max 24h)
 
 ## Docs
 
