@@ -10,6 +10,7 @@ You have AI agent traces in [Pydantic Logfire](https://logfire.pydantic.dev/) an
 - `lft get -s <trace_id>` -- human-readable conversation summary
 - `lft replay trace.json` -- re-send the last turn against the live API
 - `lft replay trace.json -n 3` -- generate 3 variations for comparison
+- `lft replay trace.json --tools-file tools.json` -- replay with overridden tool definitions
 
 ## Install
 
