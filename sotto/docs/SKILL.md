@@ -1,17 +1,17 @@
 ---
 name: using-sotto
-description: Local-first, node-aware secrets CLI with stable sotto:// references, encrypted vault storage, ephemeral tokens, session unlock, and remote node support. Use when storing, retrieving, or managing secrets, setting up .sotto.toml project context, resolving sotto:// references in code, wrapping secrets as tokens, importing from .env files, searching metadata, or injecting secrets into subprocesses.
+description: Local-first, node-aware secrets CLI with stable sotto:// references, encrypted vault storage, metadata-only discovery on local nodes, temporal unlock sessions, batch JSON writes, ephemeral tokens, and env injection. Use when storing, retrieving, importing, searching, unlocking, or injecting secrets with profile/project-aware scoping.
 ---
 
 # Using Sotto
 
-Sotto stores secrets behind stable `sotto://` references in an encrypted local vault (age + scrypt). The same references resolve through remote HTTPS/JWT nodes without changing syntax.
+Sotto stores secrets behind stable `sotto://` references in an encrypted local vault (age + scrypt). Local nodes also maintain a metadata-only index so `list` and `search` can work without a passphrase, and `unlock` can start a local session daemon for later reads without `SOTTO_PASSPHRASE`.
 
 ## First Move
 
 ```bash
 # Install
-go install github.com/jsiml/sotto@latest
+eget svilupp/go-utils-depot --tag 'sotto/*' --to ~/.local/bin
 
 # Bootstrap vault + config
 sotto init --default-profile work
@@ -30,254 +30,182 @@ sotto set openai-api-key sk-ant-...
 sotto get openai-api-key --stdout
 ```
 
-For AI agents and long-running sessions:
-
-```bash
-sotto unlock --ttl 1h                   # Unlock once, agents read freely
-sotto get openai-api-key --stdout       # No passphrase prompt needed
-sotto lock                              # End session when done
-```
-
 ## Commands
 
 ### init -- Bootstrap vault and config
 
 ```bash
-sotto init                              # Interactive setup
-sotto init --default-profile work       # Set default profile
-sotto init --non-interactive            # Use SOTTO_PASSPHRASE env var
+sotto init
+sotto init --default-profile work
+sotto init --non-interactive
+sotto init --vault-path ~/secure/sotto/vault.age
 ```
 
-Creates `~/.config/sotto/config.toml` and `~/.config/sotto/vault.age`.
+Creates `~/.config/sotto/config.toml` by default. Override the config path with `SOTTO_CONFIG`.
 
 ### set -- Store or update a secret
 
 ```bash
-sotto set api-key                       # Interactive prompt for value
-sotto set api-key sk-test-123           # Inline value (warns about shell history)
+sotto set api-key
+sotto set api-key sk-test-123
 sotto set db-url --profile work --project acme.backend
-sotto set deploy-key --note "CI/CD" --tags ci,deploy
-echo "secret" | sotto set api-key       # Auto-detects piped stdin
-echo "secret" | sotto set api-key --stdin  # Explicit stdin flag also works
-sotto set sotto://work/acme.backend/db-password  # Write via URI
-sotto set api-key --global              # Force global scope even with active context
+sotto set api-key --global
+echo "secret" | sotto set api-key
+sotto set --file profile.json --profile personal
+cat profile.json | sotto set --stdin-json --profile personal
+sotto set api-key sk-test-123 --quiet
 ```
 
-Bulk set (atomic, validates all keys before writing):
+- Inline values warn by default because of shell history.
+- `--quiet` / `-q` suppresses warnings, not errors.
+- Batch JSON writes are local-node only and apply atomically after validation.
+
+### get -- Retrieve a secret or dump a profile
 
 ```bash
-sotto set --file secrets.json           # Read {"key": "value", ...} from file
-echo '{"k1":"v1","k2":"v2"}' | sotto set --stdin-json  # JSON from stdin
+sotto get api-key
+sotto get api-key --stdout
+sotto get api-key --json
+sotto get api-key --json --stdout
+sotto get api-key --uri
+sotto get api-key --exact
+sotto get sottok_7Kx9mPqR2v... --stdout
+sotto get secret://provider/key --node corp --stdout
+
+# Dump direct profile-scoped secrets
+sotto get --profile personal --format json
+sotto get --profile personal --format env
 ```
 
-Feedback: prints "Updated" for existing keys, "Stored" for new ones. Suppress with `--quiet`.
-
-### get -- Retrieve a secret
-
-```bash
-sotto get api-key                       # Copy to clipboard (interactive TTY)
-sotto get api-key --stdout              # Print to stdout (scripts)
-sotto get db-url --profile work --project acme.backend
-sotto get api-key --json                # Metadata JSON (value redacted)
-sotto get api-key --json --stdout       # Metadata JSON with value included
-sotto get api-key --uri                 # Print resolved sotto:// URI
-sotto get api-key --exact               # Disable cascading, match exact scope only
-sotto get sottok_7Kx9mPqR2v... --stdout  # Resolve ephemeral token
-sotto get secret://provider/key         # Forward to remote node
-```
-
-Profile dump (no key argument — dumps entire profile):
-
-```bash
-sotto get --profile work                # Table format: KEY, VALUE, TYPE, NOTE
-sotto get --profile work --format json  # {"key": "value", ...} object
-sotto get --profile work --format env   # KEY=value lines (sorted, uppercased)
-```
-
-Safety: `get` copies to clipboard by default when stdout is a TTY. Refuses to write to non-interactive stdout without `--stdout` or `--json`.
-
-Key suggestions: if a key is not found, sotto suggests similar keys from the metadata index.
+- With no positional key, `get` enters profile dump mode and requires `--profile`.
+- Profile dump returns direct profile-scoped secrets only; it does not include project-scoped overrides.
+- `get` refuses to write a secret to non-interactive stdout unless you use `--stdout` or `--json`.
 
 ### del -- Delete a secret or burn a token
 
 ```bash
-sotto del api-key                       # Delete with confirmation prompt
-sotto del api-key --force               # Skip confirmation
+sotto del api-key
+sotto del api-key --force
 sotto del sotto://work/acme.backend/db-password --exact
-sotto del sottok_7Kx9mPqR2v... --force  # Burn an ephemeral token
+sotto del sottok_7Kx9mPqR2v... --force
 ```
 
-Prompts for confirmation unless `--force` is set. `--exact` disables cascading lookup. Shows the resolved `sotto://` reference on success.
+Bare-key deletes follow cascade rules unless `--exact` is set. Confirmation/output show the resolved `sotto://...` target.
 
 ### list -- Show secret metadata
 
 ```bash
-sotto list                              # Table format, current context
-sotto ls                                # Alias
-sotto list --all                        # Show every stored secret
-sotto list --verbose                    # Include created/modified timestamps
-sotto list --format json                # JSON output
-sotto list --profile work               # Filter by profile
-sotto list --project acme.backend       # Filter by project
-sotto list --tag ci                     # Filter by tag (comma-separated for OR matching)
-sotto list --tag ci,deploy              # Secrets with "ci" OR "deploy" tag
-sotto list --tokens                     # List active ephemeral tokens
+sotto list
+sotto ls
+sotto list --all
+sotto list --verbose
+sotto list --format json
+sotto list --profile personal
+sotto list --tag form-fill,identity
+sotto list --tokens
 ```
 
-Never shows raw values -- only metadata (key, ref, type, tags, source, note, timestamps). Works without passphrase (reads metadata index) unless `--tokens` is used.
+- Local `list` works without `SOTTO_PASSPHRASE`; it uses the metadata index.
+- `list --tokens` still requires vault access because tokens live inside the encrypted vault.
+- Table output includes tags; JSON output includes timestamps and inherited source.
 
-### search -- Search secret key names (no passphrase needed)
+### search -- Search for key names
 
 ```bash
-sotto search email                      # Case-insensitive substring match
-sotto search api-key --profile personal # Filter by profile
-sotto search api-key --format json      # JSON output
+sotto search email
+sotto search email --profile personal
+sotto search api-key --format json
 ```
 
-Searches the metadata index only — no secret values are exposed. Does not require the vault to be unlocked.
-
-### unlock -- Start a session for non-interactive access
-
-```bash
-sotto unlock                            # Default: 1 hour TTL
-sotto unlock --ttl 30m                  # 30 minute session
-sotto unlock --ttl 2h                   # 2 hour session
-sotto unlock --session-profile work     # Restrict to specific profile
-sotto unlock --read-only                # Only allow read operations
-```
-
-Spawns a background daemon that holds the passphrase in memory. Other sotto commands (and AI agents) can then read secrets without prompting. TTL range: 1 minute to 24 hours.
-
-### lock -- End the active session
-
-```bash
-sotto lock                              # Stop daemon, clear session
-```
+- Local `search` uses the metadata index and does not require `SOTTO_PASSPHRASE`.
+- Search is key-name substring matching, case-insensitive.
 
 ### wrap -- Create an ephemeral token
 
 ```bash
-sotto wrap openai-api-key               # Default: 10m TTL, 1 use
-sotto wrap openai-api-key --ttl 1h      # Custom TTL
-sotto wrap openai-api-key --ttl 30m --uses 3  # Multiple uses
+sotto wrap openai-api-key
+sotto wrap openai-api-key --ttl 1h
+sotto wrap openai-api-key --ttl 30m --uses 3
+sotto wrap openai-api-key --exact
 ```
 
-Prints the `sottok_*` plaintext to stdout (machine-readable). Metadata (expiry, uses) goes to stderr. The token is shown once and cannot be recovered.
+Prints the plaintext `sottok_*` token to stdout and metadata to stderr. Tokens are shown once and stored as hashes in the vault.
 
-### import -- Bulk load from .env files
+### import -- Bulk load from `.env`
 
 ```bash
-sotto import .env                       # Import all entries
-sotto import .env --dry-run             # Preview mapping table
+sotto import .env
+sotto import .env --dry-run
 sotto import .env --profile work --project acme.backend
-sotto import .env --tags "imported,dotenv" --note "bulk import"
+sotto import .env --tags imported,dotenv --note "bulk import"
 ```
 
-Keys are normalized from UPPER_SNAKE_CASE to lower-kebab-case. Empty values and comment lines are skipped. Reports new vs updated counts.
+Keys are normalized from UPPER_SNAKE_CASE to lower-kebab-case.
 
-### env -- Export secrets as env vars or inject into subprocess
+### env -- Export secrets or inject a subprocess
 
 Reads the `[env]` section from the nearest `.sotto.toml`:
 
 ```bash
-sotto env                               # Print KEY="value" lines (dotenv format)
-sotto env -- node server.js             # Exec command with secrets in environment
-sotto env -- docker compose up          # Works with any command
+sotto env
+sotto env -- node server.js
+sotto env -- docker compose up
 ```
 
-Requires a `.sotto.toml` with an `[env]` section. Fails with a clear error if any mapping cannot be resolved.
-
-### status -- Show current context
+### status -- Show config, node, and context
 
 ```bash
-sotto status                            # Config, node, vault, context info
+sotto status
 sotto status --format json
 ```
 
-Shows session status when a session is active (time remaining, profile scope, read-only mode).
+Locked local vaults report `Secrets: locked (set SOTTO_PASSPHRASE to unlock)`.
+
+### unlock / lock -- Start or end a temporal read session
+
+```bash
+sotto unlock --ttl 1h
+sotto unlock --ttl 30m --read-only
+sotto unlock --ttl 2h --session-profile personal --read-only
+sotto lock
+```
+
+- `unlock` is local-node only.
+- The daemon keeps the passphrase in memory and later commands fetch it over a local socket.
+- `--session-profile` limits the session to a single profile.
+- `--read-only` blocks writes while the session is active.
 
 ## Bare Invocation Shorthand
 
-For quick access without typing `get --stdout`:
-
 ```bash
-sotto sottok_7Kx9mPqR2v...             # = sotto get sottok_... --stdout
-sotto sotto://work/acme.backend/db-url  # = sotto get sotto://... --stdout
-sotto secret://provider/key             # = sotto get secret://... --stdout
+sotto sottok_7Kx9mPqR2v...
+sotto sotto://work/acme.backend/db-url
+sotto secret://provider/key --node corp
 ```
 
-## Ephemeral Tokens (sottok_*)
+This is shorthand for `sotto get ... --stdout`.
 
-Tokens are time-limited, use-limited handles to secrets. Share a token instead of the raw value.
+## Secret References
 
-```bash
-# Create
-sotto wrap api-key --ttl 1h --uses 3
-# sottok_AbCdEf123456...
-
-# Resolve (decrements remaining uses)
-sotto get sottok_AbCdEf123456... --stdout
-
-# List active tokens
-sotto list --tokens
-
-# Revoke permanently
-sotto del sottok_AbCdEf123456... --force
+```text
+sotto://api-key
+sotto://work/api-key
+sotto://work/acme.backend/db-password
+sotto://work/acme.backend/db-password?node=corp
 ```
 
-Tokens are stored as SHA-256 hashes in the vault. The plaintext is shown once at creation. Expired, exhausted, or burned tokens are excluded from listings.
-
-## Secret References (sotto://)
-
-References are logical identifiers, not network locators:
-
-```
-sotto://api-key                                  # Global
-sotto://work/api-key                             # Profile-scoped
-sotto://work/acme.backend/db-password            # Project-scoped
-sotto://work/acme.backend/db-password?node=corp  # Node selector
-```
-
-Dots in project names create hierarchy for monorepos (e.g., `myapp.api`, `myapp.worker`). Secrets set at a parent project cascade down to children automatically.
-
-### secret:// URIs
-
-`secret://` URIs are forwarded verbatim to remote nodes for resolution. They require an active remote node:
-
-```bash
-sotto get secret://provider/some-key --node corp
-```
-
-See [URI-CONVENTION.md](URI-CONVENTION.md) for the full reference: naming rules, dotted project patterns for monorepos, `.sotto.toml` placement, query parameters, and cascade mechanics.
-
-## Cascading Lookup
-
-Bare-key lookup with `profile=work, project=acme.backend.worker` resolves in order:
-
-```
-1. sotto://work/acme.backend.worker/<key>
-2. sotto://work/acme.backend/<key>
-3. sotto://work/acme/<key>
-4. sotto://work/<key>
-5. sotto://<key>
-```
-
-Profiles and keys are flat (no dots). Projects use dots to encode hierarchy.
-
-Use `--exact` on `get`, `del`, or `wrap` to disable cascading and match only the exact scope.
+See [URI-CONVENTION.md](URI-CONVENTION.md) for naming rules, dotted project hierarchy, query parameters, and cascade behavior.
 
 ## Context Detection
 
-Resolution order (highest priority first):
+Resolution order:
 
 1. CLI flags: `--node`, `--profile`, `--project`
 2. Environment: `SOTTO_NODE`, `SOTTO_PROFILE`, `SOTTO_PROJECT`
-3. Nearest `.sotto.toml` (walks up from PWD)
-4. Global config defaults (`~/.config/sotto/config.toml`)
+3. Nearest `.sotto.toml`
+4. Global config defaults
 
-## Project Files (.sotto.toml)
-
-Place in any directory to set context for that subtree:
+Example `.sotto.toml`:
 
 ```toml
 node = "local"
@@ -289,11 +217,9 @@ OPENAI_API_KEY = "openai-api-key"
 DATABASE_URL = "db-url"
 ```
 
-The `[env]` section maps env var names to sotto key names. Used by `sotto env` to export or inject secrets.
-
 ## Configuration
 
-Global config: `~/.config/sotto/config.toml` (override path with `SOTTO_CONFIG` env var).
+Default config path: `~/.config/sotto/config.toml`
 
 ```toml
 default_node = "local"
@@ -310,30 +236,10 @@ read_only = true
 
 [nodes.corp.auth]
 mode = "jwt"
-audience = "sotto"
 jwt_env = "SOTTO_JWT"
 ```
 
-Node kinds: `local` (encrypted vault) or `remote` (HTTPS + JWT).
-
-### Remote Node Auth
-
-Remote nodes support three JWT resolution methods:
-
-```toml
-# From environment variable
-jwt_env = "SOTTO_JWT"
-
-# From file
-jwt_file = "/path/to/token.jwt"
-
-# From command output
-jwt_command = "gcloud auth print-identity-token"
-```
-
-URL supports `${VAR}` expansion from environment variables.
-
-Read-only remote nodes reject `Put` and `Delete` operations with a clear error.
+Remote auth also supports `jwt_file` and `jwt_command`.
 
 ## Global Flags
 
@@ -342,143 +248,27 @@ Read-only remote nodes reject `Put` and `Delete` operations with a clear error.
 | `--node` | Select node for this operation |
 | `--profile` | Set profile scope |
 | `--project` | Set project scope |
-| `--format` | Output format: `table` (default), `json`, or `env` |
-| `--quiet` / `-q` | Suppress warnings (errors still print) |
-| `--non-interactive` | Disable prompts, use env vars |
+| `--format` | Output format: `table`, `json`, or `env` |
+| `--quiet`, `-q` | Suppress warnings (errors still print) |
 
 ## Environment Variables
 
 | Variable | Purpose |
 |----------|---------|
-| `SOTTO_PASSPHRASE` | Vault passphrase (non-interactive/CI) |
+| `SOTTO_PASSPHRASE` | Vault passphrase for non-interactive/local automation |
 | `SOTTO_CONFIG` | Override config file path |
-| `SOTTO_NODE` | Default node (overrides config) |
-| `SOTTO_PROFILE` | Default profile (overrides config) |
-| `SOTTO_PROJECT` | Default project (overrides config) |
-| `SOTTO_SESSION_DIR` | Override session socket directory |
-
-## Common Workflows
-
-### Set up a new project
-
-```bash
-# 1. Init if not done
-sotto init --default-profile work
-
-# 2. Store project secrets
-sotto set db-url --project myapp.backend
-sotto set api-key --project myapp.backend
-
-# 3. Create project file
-cat > .sotto.toml << 'EOF'
-profile = "work"
-project = "myapp.backend"
-
-[env]
-DATABASE_URL = "db-url"
-API_KEY = "api-key"
-EOF
-
-# 4. Now bare keys resolve with project context
-sotto get db-url     # Resolves sotto://work/myapp.backend/db-url
-```
-
-### Unlock for AI agents / long-running sessions
-
-```bash
-sotto unlock --ttl 2h                   # Hold passphrase for 2 hours
-# Now all sotto commands work without passphrase prompts
-sotto get api-key --stdout              # No prompt, reads from session daemon
-sotto search email                      # Search metadata (never needs passphrase)
-sotto lock                              # Done — end session early
-```
-
-### Import from an existing .env file
-
-```bash
-sotto import .env --profile work --project myapp.backend --dry-run
-sotto import .env --profile work --project myapp.backend
-```
-
-### Bulk set from JSON
-
-```bash
-# From file
-echo '{"api-key":"sk-123","db-url":"postgres://..."}' > secrets.json
-sotto set --file secrets.json --profile work
-
-# From stdin
-echo '{"k1":"v1","k2":"v2"}' | sotto set --stdin-json
-```
-
-### Run a process with secrets injected
-
-```bash
-sotto env -- node server.js
-sotto env -- docker compose up
-```
-
-### Dump an entire profile
-
-```bash
-sotto get --profile work                # Table with all keys + values
-sotto get --profile work --format env   # KEY=value lines for shell export
-sotto get --profile work --format json  # {"key": "value"} object
-```
-
-### Share a secret via ephemeral token
-
-```bash
-TOKEN=$(sotto wrap db-password --ttl 1h --uses 1)
-echo "Resolve with: sotto get $TOKEN --stdout"
-```
-
-### Use in scripts
-
-```bash
-export SOTTO_PASSPHRASE="..."
-DB_URL=$(sotto get db-url --stdout --non-interactive)
-```
-
-### Search and discover keys (no passphrase needed)
-
-```bash
-sotto search email                      # Find keys matching "email"
-sotto list --tag ci                     # List secrets tagged "ci"
-sotto list --profile work               # List secrets in profile (metadata only)
-```
-
-### Shared secrets across sub-projects
-
-```bash
-# Set at parent project level
-sotto set shared-key --profile work --project acme
-
-# Available to all sub-projects via cascade
-sotto get shared-key --project acme.backend    # Finds sotto://work/acme/shared-key
-sotto get shared-key --project acme.frontend   # Same cascade
-```
-
-### Use a remote node
-
-```bash
-export SOTTO_JWT="eyJhbGciOi..."
-sotto get api-key --node corp --stdout
-sotto get secret://provider/key --node corp --stdout
-```
+| `SOTTO_NODE` | Default node override |
+| `SOTTO_PROFILE` | Default profile override |
+| `SOTTO_PROJECT` | Default project override |
 
 ## Security Properties
 
-**Protected:** plaintext-at-rest, shell/history leakage (interactive prompt by default), accidental stdout exposure (clipboard default + TTY guard).
+**Protected:** plaintext-at-rest, accidental stdout exposure, interactive clipboard default, token plaintext never persisted.
 
 **Not protected:** root compromise, same-user malware, leaked bearer grants.
 
-Vault is always encrypted (age + scrypt), file permissions 0600, writes are atomic (temp + rename).
+The local metadata index is unencrypted and stores only discovery metadata: key names, scope, type, tags, and timestamps. Secret values remain encrypted.
 
-**Token security:** tokens are stored as SHA-256 hashes (plaintext is never persisted). Tokens have mandatory TTL and use limits. Burned tokens cannot be reused. Token resolution decrements the use counter atomically.
+## Architecture
 
-**Session security:** `sotto unlock` holds the passphrase in a background daemon process, accessible only via a Unix domain socket with 0600 permissions. The session has a mandatory TTL (max 24h). The passphrase is never written to disk — only held in process memory.
-
-## Architecture (for contributors)
-
-See [REFERENCE.md](REFERENCE.md) for package structure, key types, node interface, and testing patterns.
+See [REFERENCE.md](REFERENCE.md) for package structure, node interface details, testing notes, and remaining work.
