@@ -15,7 +15,7 @@ You have AI agent traces in [Pydantic Logfire](https://logfire.pydantic.dev/) an
 ## Install
 
 ```bash
-eget svilupp/go-utils-depot --tag 'logfire-trace/*' --to ~/.local/bin
+eget svilupp/go-utils-depot --tag 'logfire-trace/' --to ~/.local/bin
 
 # Create short alias
 alias lft='logfire-trace'

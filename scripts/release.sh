@@ -65,7 +65,9 @@ for PLATFORM in "${PLATFORMS[@]}"; do
   if [ "$GOOS" = "windows" ]; then
     (cd "$DIST" && zip -q "${ARCHIVE}.zip" "${TOOL}${EXT}" && rm "${TOOL}${EXT}")
   else
-    (cd "$DIST" && tar czf "${ARCHIVE}.tar.gz" "${TOOL}${EXT}" && rm "${TOOL}${EXT}")
+    # COPYFILE_DISABLE=1 suppresses macOS AppleDouble (._*) entries that
+    # otherwise confuse extractors like eget into showing two candidates.
+    (cd "$DIST" && COPYFILE_DISABLE=1 tar czf "${ARCHIVE}.tar.gz" "${TOOL}${EXT}" && rm "${TOOL}${EXT}")
   fi
 done
 
@@ -87,4 +89,4 @@ gh release create "$TAG" "$DIST"/* \
 
 echo ""
 echo "Done! Install with:"
-echo "  eget svilupp/go-utils-depot --tag '${TOOL}/*' --to ~/.local/bin"
+echo "  eget svilupp/go-utils-depot --tag '${TOOL}/' --to ~/.local/bin"

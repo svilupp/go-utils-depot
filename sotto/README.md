@@ -14,7 +14,7 @@ You have API keys, database passwords, tokens scattered across `.env` files, she
 ## Install
 
 ```bash
-eget svilupp/go-utils-depot --tag 'sotto/*' --to ~/.local/bin
+eget svilupp/go-utils-depot --tag 'sotto/' --to ~/.local/bin
 ```
 
 ## Quick start

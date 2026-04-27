@@ -11,7 +11,7 @@ Sotto stores secrets behind stable `sotto://` references in an encrypted local v
 
 ```bash
 # Install
-eget svilupp/go-utils-depot --tag 'sotto/*' --to ~/.local/bin
+eget svilupp/go-utils-depot --tag 'sotto/' --to ~/.local/bin
 
 # Bootstrap vault + config
 sotto init --default-profile work

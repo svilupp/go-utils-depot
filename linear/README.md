@@ -9,7 +9,7 @@ You work with Linear tickets — fetching issue details, creating new tickets, o
 ## Install
 
 ```bash
-eget svilupp/go-utils-depot --tag 'linear/*' --to ~/.local/bin
+eget svilupp/go-utils-depot --tag 'linear/' --to ~/.local/bin
 ```
 
 ## Quick start

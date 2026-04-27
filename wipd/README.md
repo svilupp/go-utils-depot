@@ -14,7 +14,7 @@ You have multiple AI agents (or agent + human) working in the same codebase. wip
 ## Install
 
 ```bash
-eget svilupp/go-utils-depot --tag 'wipd/*' --to ~/.local/bin
+eget svilupp/go-utils-depot --tag 'wipd/' --to ~/.local/bin
 ```
 
 ## Quick start

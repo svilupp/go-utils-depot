@@ -9,7 +9,7 @@ You interact with Notion workspaces — searching for pages, reading content, up
 ## Install
 
 ```bash
-eget svilupp/go-utils-depot --tag 'notion/*' --to ~/.local/bin
+eget svilupp/go-utils-depot --tag 'notion/' --to ~/.local/bin
 ```
 
 ## Quick start
