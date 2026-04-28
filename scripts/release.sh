@@ -50,6 +50,15 @@ PLATFORMS=(
 echo "Building ${TOOL} ${VERSION} (commit ${COMMIT}) from ${SOURCE_DIR}"
 echo ""
 
+# Run pre-build hooks the source repo declares (e.g. logfire-viewer's `make
+# assets` syncs //go:embed sources). Probe with `make -n` so tools without
+# the target are silently skipped.
+if [ -f "${SOURCE_DIR}/Makefile" ] && make -C "$SOURCE_DIR" -n assets >/dev/null 2>&1; then
+  echo "Running 'make assets' in ${SOURCE_DIR}"
+  make -C "$SOURCE_DIR" assets
+  echo ""
+fi
+
 for PLATFORM in "${PLATFORMS[@]}"; do
   GOOS="${PLATFORM%/*}"
   GOARCH="${PLATFORM#*/}"
