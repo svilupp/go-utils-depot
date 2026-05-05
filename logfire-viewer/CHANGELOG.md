@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Keep it brief!
 
+## [0.2.0] - 2026-04-29
+
+### Added
+- Saved-items inbox at `/saved` with star, notes, tags, retention, and live updates
+- `saved` CLI for pushing and managing traces from the terminal against a running server
+- Replay sessions: `/replays` ingests directories of `lft replay --output-dir <DIR>` receipts, auto-clustered by `source_trace_id` × `input_sha`, with side-by-side prompt-diff compare view
+- `POST /api/ingest` accepts an optional `session=<label>` form field for a friendly replay-session name (defaults to a random hex)
+- Search bar across run / scenario / chat / conversation IDs; sortable, date-filtered tables; green-only runs preset; wipe button
+
+### Changed
+- Smarter conversation view: collapsed long system prompts, linked sources, copy buttons, recency badges, empty-turns metadata card
+
 ## [0.1.0] - 2026-04-26
 
 ### Added

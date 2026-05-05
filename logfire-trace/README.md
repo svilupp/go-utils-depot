@@ -9,8 +9,10 @@ You have AI agent traces in [Pydantic Logfire](https://logfire.pydantic.dev/) an
 - `lft get <trace_id>` -- download trace to local JSON
 - `lft get -s <trace_id>` -- human-readable conversation summary
 - `lft replay trace.json` -- re-send the last turn against the live API
-- `lft replay trace.json -n 3` -- generate 3 variations for comparison
-- `lft replay trace.json --tools-file tools.json` -- replay with overridden tool definitions
+- `lft replay <chat_id>` -- replay a Firestore chat directly (auto-detected source)
+- `lft replay <chat.json> --recipe <trace_id>` -- replay a chat with model/tools/settings from a sibling trace
+- `lft replay trace.json --output-dir .replays/` -- write a `lft.replay.receipt/v1` JSON per invocation
+- `lft replay trace.json --dry-run` -- print the resolved `ReplayConfig` with per-field provenance and exit
 
 ## Install
 
@@ -41,6 +43,12 @@ lft get -t <trace_id>
 
 # Replay last turn
 lft replay logs/trace_abc123.json
+
+# Replay a Firestore chat with a recipe trace
+lft replay <chat_id> --recipe logs/trace_abc123.json
+
+# Save replay receipts (one JSON per invocation)
+lft replay logs/trace_abc123.json --output-dir .replays/
 ```
 
 ## Commands
@@ -52,7 +60,7 @@ lft replay logs/trace_abc123.json
 | `lft get -u <email>` | Download latest chat for user (requires Firestore config) |
 | `lft get -s <trace_id>` | View conversation summary |
 | `lft get -t <trace_id>` | View span tree |
-| `lft replay <source>` | Replay a recorded conversation against a live API |
+| `lft replay <source>` | Replay a recorded conversation against a live API (trace ID, chat ID, trace JSON, or chat JSON; auto-detected) |
 | `lft query <sql>` | Run custom SQL query |
 | `lft check` | Validate config and test API |
 | `lft init` | Interactive setup |
@@ -92,5 +100,34 @@ firestore:
   chats_collection: ai-chats
   users_collection: users
 ```
+
+## Replay receipts
+
+Pass `--output-dir <DIR>` (env `LFT_OUTPUT_DIR`) when you'll want to look at a replay again — prompt iteration, model comparison, noise sampling. Each invocation drops one self-contained `lft.replay.receipt/v1` JSON into the folder; the directory is append-only and stays cluster-friendly.
+
+```bash
+export LFT_OUTPUT_DIR=.replays/
+lft replay logs/trace_abc123.json
+lft replay logs/trace_abc123.json --temperature 0.7
+jq -r '.input_sha + " " + .input.model' .replays/*.json | sort | uniq -c
+```
+
+Receipts include an `input_sha` fingerprint of the rendered request (model, system, messages, tools, params). Same `source_trace_id` + same `input_sha` = noise samples; different `input_sha` = a variant. `logfire-viewer` ingests `--output-dir` directories at `/replays` with auto-clustering and a side-by-side prompt-diff compare view.
+
+## Replay flags
+
+| Flag | Purpose |
+|---|---|
+| `--recipe <trace_id\|path>` | Trace supplying model/tools/settings; auto-discovered from chat metadata when omitted |
+| `--model <name>` | Override model (replaces `--model-override`; old name kept as deprecated alias) |
+| `--system-file <path>` | Override system prompt from text file |
+| `--temperature <float>` | Override generation temperature |
+| `--reasoning-effort low\|medium\|high` | CLI-only; not stored in span data |
+| `--max-output-tokens <int>` | Override max output tokens |
+| `--skip-tools` | Run without tools; emits permanent stderr warning |
+| `--tools-file <path>` | Override tool definitions from JSON |
+| `--output-dir <DIR>` | Append a `lft.replay.receipt/v1` JSON to `<DIR>` for every invocation |
+| `--run-id <STRING>` | Optional grouping tag stamped on receipts |
+| `--dry-run` / `--dry-run --json` | Print resolved `ReplayConfig` with per-field provenance and exit |
 
 Full usage guide: [docs/SKILL.md](docs/SKILL.md)

@@ -95,3 +95,59 @@ logfire-trace replay logs/trace_<id>.json --inspect
 # Chat-first path
 logfire-trace replay -c <chat_id> --list-replay-spans
 ```
+
+## Filing traces for review (logfire-viewer saved)
+
+When the user asks Claude to focus on specific traces — "review the failing
+tool calls from this run", "look at any conversation where the agent looped",
+"check the ones with truncation" — push them into the user's `logfire-viewer`
+saved-items inbox rather than printing inline summaries. The user reviews them
+with j/k navigation in the UI; this is a far better workflow than scrolling
+chat output.
+
+### When to use it
+
+- The user says "review", "look at", "check", "investigate" + a filter
+  ("failed", "looped", "long", "with X tool"), and you have or can fetch
+  the underlying trace files.
+- You're triaging a batch and want the user to be able to walk it.
+- You want to leave a breadcrumb (the `--note`) explaining why each trace
+  matters.
+
+Don't use it for one-off lookups where the user just wants the answer
+inline.
+
+### Workflow
+
+1. Fetch candidate traces with `lft fetch <query>`.
+2. For each trace that matches the user's criteria:
+
+   ```bash
+   logfire-viewer saved add <file> --note "<one-line reason>" \
+       --tag <stable-tag-for-this-batch>
+   ```
+
+3. Tell the user:
+   - How many were filed.
+   - The tag you used (so they can filter the inbox).
+   - The inbox URL (`<server>/saved`).
+
+### Server discovery
+
+The CLI looks at `~/.config/logfire-viewer/server.json` automatically. If it
+isn't running, the CLI exits with a clear hint — pass that hint along to the
+user verbatim ("start one with `logfire-viewer serve`"). Do not write to the
+saved_items directory directly.
+
+### Idempotency and dismissals
+
+- Re-running the same script is safe: same-SHA adds are no-ops.
+- If the user has previously trashed a file, the CLI returns
+  "file was previously dismissed" and exits 0. Don't `--force` past this
+  unless the user explicitly asks to override their prior dismissal.
+
+### Failure handling
+
+The CLI prints actionable hints for every common failure (no server, file
+not found, file too big, format unrecognised, etc.). Surface them to the user
+as-is rather than rephrasing — they're written to be self-explanatory.

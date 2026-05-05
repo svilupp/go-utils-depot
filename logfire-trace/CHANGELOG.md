@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Keep it brief!
 
+## [0.10.0] - 2026-04-30
+
+### Added
+- Chat replay support: pass a Firestore chat ID or a chat JSON fixture directly to `replay`
+- `--recipe <trace_id|path>` supplies model, tools, and generation settings from a sibling trace; auto-discovered from chat fixture `metadata.trace.primary_trace_id` when omitted
+- Source auto-detection across trace ID, chat ID, trace JSON, and chat JSON inputs
+- New flags: `--system-file`, `--temperature`, `--reasoning-effort` (`low|medium|high`), `--max-output-tokens`, `--skip-tools`
+- `--dry-run` and `--dry-run --json` print the resolved `ReplayConfig` with per-field provenance
+- Strict-tools validation: chats with tool calls but no tool definitions error out with the called tool names and remediation hints (`--recipe`, `--tools-file`, `--skip-tools`)
+- Replay receipts: `--output-dir <DIR>` (env `LFT_OUTPUT_DIR`) writes one `lft.replay.receipt/v1` JSON per invocation (atomic, append-only)
+- `--run-id <STRING>` stamps an optional grouping tag on receipts
+
+### Changed
+- `--model-override` renamed to `--model`; the old name remains as a hidden alias and emits a stderr warning. Setting both flags is a hard error.
+- `--skip-tools` always emits a permanent stderr warning before each replay reminding that fidelity is degraded.
+- Trace replays now apply `--temperature`, `--system-file`, `--max-output-tokens`, and `--reasoning-effort` to the provider request; `runReplay` rejects unexpected extra positional args with a clear error pointing at the `--flag=value` form
+- `--output` and `--output-dir` reject mismatched path shapes (`.json` vs trailing slash) with corrective error messages that name the other flag
+
+### Breaking
+- Trace-replay `--dry-run` now prints a resolved-config provenance summary instead of a full `ReplayOutput` JSON. Use `--dry-run --json` to get structured output for tooling.
+
 ## [0.9.0] - 2026-03-27
 
 ### Added

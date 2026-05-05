@@ -10,6 +10,8 @@ You have AI agent traces — Logfire JSON, Firestore chat exports, Perseus run d
 - `lfv open <file>` -- open one or more files in the viewer
 - `lfv dump ./runs` -- emit a fused JSON snapshot to stdout
 - `lfv list ./runs --json` -- one row per detected file
+- `lfv saved add <file> --note "..."` -- push traces into the saved-items inbox at `/saved`
+- `lfv serve .replays/` -- ingest a directory of `lft replay --output-dir <DIR>` receipts; auto-clusters at `/replays`
 - Drop traces or whole folders onto the navbar dropzone, or `POST /api/ingest`
 - `Jobs` tab runs `lft get` / `lft replay` as background subprocesses with live SSE output
 
@@ -60,6 +62,7 @@ Detected automatically:
 - **Logfire trace** -- flat span arrays from `lft get <id>` or `replay_traces/*.json`
 - **Firestore chat** -- exported `ai-chat` documents
 - **Perseus scenario / summary / run directory** -- `{run}/summary.json` plus `{run}/conversations/*.json`
+- **Replay session directory** -- a folder of `lft.replay.receipt/v1` files from `lft replay --output-dir <DIR>`; auto-clustered by `source_trace_id` × `input_sha`
 - **Generic messages** -- plain `[{role, content}, ...]` arrays
 
 Files larger than 50MB are skipped.
@@ -84,6 +87,11 @@ Files larger than 50MB are skipped.
 | `GET /api/jobs/{id}`           | Single job + buffered stdout/stderr              |
 | `GET /api/jobs/{id}/output`    | SSE stream of job output (terminates on `done`)  |
 | `POST /api/jobs/{id}/cancel`   | Cancel a running job                             |
+| `POST /api/saved`              | Add a saved item (multipart or JSON)             |
+| `GET /api/saved`               | List saved items                                 |
+| `PATCH /api/saved/{id}`        | Update star, notes, tags, read state             |
+| `DELETE /api/saved/{id}`       | Remove a saved item (also dismisses the SHA)     |
+| `GET /api/saved/events`        | SSE stream of saved-item updates                 |
 | `GET /llms.txt`                | Markdown agent guide (read this from an agent)   |
 | `GET /openapi.json`            | OpenAPI 3.0 spec for the JSON API                |
 | `GET /events`                  | SSE stream of store/event updates                |
@@ -97,10 +105,44 @@ Files larger than 50MB are skipped.
 - `/runs/{id}/s/{name}` -- scenario detail with verdict panel and `lft replay` command
 - `/runs/compare?a=&b=` -- side-by-side run diff
 - `/loose` -- conversations not tied to any run
+- `/replays` -- replay sessions clustered by `source_trace_id` × `input_sha` with prompt-diff compare view
+- `/saved` -- saved-items inbox with star, notes, tags, and live updates
 - `/jobs` -- background lft jobs with status and live output
 - ⌘K or `/` -- search palette; `?` -- help drawer
 - Keys: `j`/`k` move row focus, `Enter` opens, `[`/`]` (or `h`/`l`) prev/next scenario, `f` focus filter, `1`-`4` cycle status, `g r` returns to runs index
 
 Localhost-only dev tool — no auth. Don't expose beyond `127.0.0.1`.
+
+## Saved items inbox
+
+A review queue for traces. Star a conversation in the UI, or push files in from the CLI:
+
+```bash
+# Push a file (works even if the trace isn't loaded yet)
+logfire-viewer saved add path/to/trace.json --note "tool loop" --tag run-2026-04-29
+
+# Walk the inbox
+logfire-viewer saved list --unread
+logfire-viewer saved read <id>
+logfire-viewer saved rm   <id>
+```
+
+The CLI auto-discovers a running `logfire-viewer serve` via `~/.config/logfire-viewer/server.json`. Override with `--server URL` or `$LOGFIRE_VIEWER_URL`. Saved files live under `~/.config/logfire-viewer/saved_items/` with a 30-day retention sweep on startup.
+
+## Replay sessions
+
+Pair with `lft replay --output-dir <DIR>` (or the legacy `-O <DIR>` / `LFT_OUT`) to compare prompt iterations:
+
+```bash
+# Generate a few receipts varying flags
+lft replay trace.json --output-dir .replays/
+lft replay trace.json --output-dir .replays/ --temperature 0.7
+lft replay trace.json --output-dir .replays/ --model claude-opus-4-7
+
+# Browse them
+logfire-viewer serve .replays/ --open
+```
+
+`/replays` clusters receipts by `source_trace_id` × `input_sha`. Same `input_sha` = noise samples; different `input_sha` under the same trace = a variant. Use the side-by-side compare view to diff two clusters.
 
 Full agent guide: [docs/using-logfire-viewer/SKILL.md](docs/using-logfire-viewer/SKILL.md)
