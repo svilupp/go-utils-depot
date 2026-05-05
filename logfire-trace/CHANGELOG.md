@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Keep it brief!
 
-## [0.10.0] - 2026-04-30
+## [0.10.0] - 2026-05-03
 
 ### Added
 - Chat replay support: pass a Firestore chat ID or a chat JSON fixture directly to `replay`
