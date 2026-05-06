@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Keep it brief!
 
+## [0.10.1] - 2026-05-06
+
+### Fixed
+- `get -c <conversation-id>` now resolves chats whose Firestore documents store the canonical `conversationId` field (the legacy `layercodeConversationId`-only lookup silently missed ~94% of recent docs)
+
+### Added
+- `FindChat` falls back to the legacy `layercodeConversationId` field after trying canonical `conversationId`, keeping older documents reachable
+- Replay chat-document JSON detector accepts both `conversationId` and `layercodeConversationId`
+
+### Changed
+- Saved chat JSON now writes `conversationId`; `ChatDocument` exposes `Conversation()` which prefers canonical and falls back to legacy
+
 ## [0.10.0] - 2026-05-03
 
 ### Added
