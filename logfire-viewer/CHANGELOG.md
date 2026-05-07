@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Keep it brief!
 
+## [0.2.1] - 2026-05-07
+
+### Fixed
+- Walker now descends into `.replays/` so `lft` receipts written under the default `LFT_OUTPUT_DIR=.replays/` show up in the Replays tab.
+
 ## [0.2.0] - 2026-05-03
 
 ### Added
