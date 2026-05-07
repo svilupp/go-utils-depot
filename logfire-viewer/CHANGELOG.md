@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Keep it brief!
 
+## [0.3.0] - 2026-05-07
+
+### Added
+- Replay families: `/replays/family/{hash}` shows every sample sharing the *exact same input* (system prompt + all input messages + tool definitions) side-by-side, so you can read N stochastic outputs in one view. Hash excludes sampling params and model name so re-runs with cache-busting tweaks still group together.
+- "View all samples · N" CTA on each variant in the session tree when the family has 2+ samples across sessions.
+- Receipt loader stamps `Meta["prefix_sha"]` on every conversation so families are pre-computed at load time.
+
+### Changed
+- Compare flow polished: `Compare two variants` button hidden when a session has only one variant; bad `/replays/compare` requests redirect to the originating session with a styled banner instead of returning a raw HTTP error; client-side guardrail blocks submit unless exactly two variants are ticked.
+
 ## [0.2.1] - 2026-05-07
 
 ### Fixed

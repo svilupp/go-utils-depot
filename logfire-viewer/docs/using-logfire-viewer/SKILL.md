@@ -121,6 +121,7 @@ Hand the user a stable URL rather than dumping JSON into the chat:
 - `/runs/{run_id}` for a run
 - `/runs/{run_id}/s/{scenario_name}` for a scenario verdict
 - `/runs/compare?a=<runA>&b=<runB>` for a side-by-side diff
+- `/replays/family/{prefix_sha}` for every sample sharing the same input (system + messages + tool definitions) across sessions
 - `/jobs/{job_id}` for live `lft` output
 
 ## Pairing with `lft`

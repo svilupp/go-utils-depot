@@ -145,4 +145,6 @@ logfire-viewer serve .replays/ --open
 
 `/replays` clusters receipts by `source_trace_id` × `input_sha`. Same `input_sha` = noise samples; different `input_sha` under the same trace = a variant. Use the side-by-side compare view to diff two clusters.
 
+`/replays/family/{hash}` collapses the noise dimension across sessions: every sample sharing the same shared input (system prompt + messages + tool definitions, regardless of model or sampling params) renders side-by-side so you can read N stochastic outputs in one view. Each variant in the session tree links to its family with a `▶ View all samples · N` button when 2+ samples exist.
+
 Full agent guide: [docs/using-logfire-viewer/SKILL.md](docs/using-logfire-viewer/SKILL.md)
