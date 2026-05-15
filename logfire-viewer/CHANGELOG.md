@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Keep it brief!
 
+## [0.3.1] - 2026-05-15
+
+### Fixed
+- Tool calls now render in Perseus run scenarios whose conversation files have empty `tool_invocations` but ship a `replay_traces/` dump. The loader follows `metadata.replay_trace_path` with a basename fallback under `<runDir>/replay_traces/` (so cross-machine run dirs work after copy), then synthesizes `ToolCall` entries from descendant `ai.toolCall` spans when the inline list is empty.
+- Logfire trace loader accepts `tool_call` / `tool_result` (underscore) content-part types in addition to the existing `tool-call` / `tool-result` (hyphen) forms, matching the variant pair already handled by the Firestore loader.
+
 ## [0.3.0] - 2026-05-07
 
 ### Added
