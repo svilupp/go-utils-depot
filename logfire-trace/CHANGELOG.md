@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Keep it brief!
 
+## [0.11.0] - 2026-05-15
+
+### Changed
+- `/v1/query` requests now send `json_rows=true` and parse the row-oriented response directly — the format Logfire recommends to avoid expensive column-to-row conversion server-side
+- All trace/chat/conversation lookups send `min_timestamp` so the server can prune partitions instead of scanning history; default lookback is 30 days, override with `--since`
+
+### Added
+- `get` command grew `--since` / `-S` (default `30d`, e.g. `--since 90d`)
+- `query --sample` previews the result shape at 50 rows with a `[sample mode]` banner — recommended first step for unfamiliar queries
+- `query` prints a stderr tip when SQL has no top-level `LIMIT` and `--sample` is not set
+
 ## [0.10.1] - 2026-05-06
 
 ### Fixed

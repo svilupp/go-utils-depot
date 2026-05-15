@@ -85,8 +85,11 @@ logfire-trace replay -c YOlefE2UTuJ87F73ghLp --span 15 --inspect
 ## Common Patterns
 
 ```bash
-# Find candidate traces first
-logfire-trace query -S 30d "SELECT trace_id FROM records ORDER BY start_timestamp DESC"
+# Preview an unfamiliar query first (caps at 50 rows; recommended for agents)
+logfire-trace query --sample "SELECT * FROM records WHERE span_name LIKE 'agent.%'"
+
+# Find candidate traces (default lookback is --since 30d; pass -S 90d to widen)
+logfire-trace query "SELECT trace_id FROM records ORDER BY start_timestamp DESC LIMIT 20"
 
 # Fetch then replay
 logfire-trace get <trace_id>
