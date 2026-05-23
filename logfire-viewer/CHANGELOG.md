@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Keep it brief!
 
+## [0.3.2] - 2026-05-22
+
+### Changed
+- Navbar drop zone routes single-file drops to `POST /api/saved` instead of `/api/ingest`. Each dropped trace lands in the ★ Saved inbox, persists across restarts (saved file store), and is reachable at `/c/{id}` immediately. Folder drops still go through `/api/ingest` so Perseus run directories keep their layout.
+
+### Fixed
+- Multi-trace logfire JSON files (spans from more than one `trace_id` with no shared `chat.id`) no longer collapse to a single inbox item. `Manager.Add` fans out one item per fused conversation via a new `MultiResolver` interface; items share one content-addressed `FileRef` and each ID dedups independently against the manifest, with one `add` SSE event per new item.
+
+### Added
+- `POST /api/saved` response carries `extras: [{item, created, already_existed}]` and a flat `items: [...]` array when a single upload produces more than one inbox item. The legacy `item` field is unchanged for N=1, so the CLI and existing API consumers keep working.
+- Dropzone status now reads e.g. *"Added 3 traces to inbox (1 multi-trace file)"*; the post-drop chip and row-flash via `ingest_toast.js` work for both `/api/ingest` and `/api/saved` paths.
+
 ## [0.3.1] - 2026-05-15
 
 ### Fixed
