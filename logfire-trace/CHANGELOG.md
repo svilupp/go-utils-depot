@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Keep it brief!
 
+## [0.12.0] - 2026-06-05
+
+### Added
+- `get -c` falls back through an optional `firestore.lookup_chats_collection`: a chat ID missing from the primary collection is resolved via the lookup collection's `conversationId`, then re-queried against the primary (empty config value = disabled)
+- Enable it by adding `lookup_chats_collection: <collection-name>` under the `firestore:` block in `~/.config/logfire-trace/config.yaml` (or answer the "Lookup chats collection" prompt in `lft init`); leave it empty/absent to disable
+
 ## [0.11.0] - 2026-05-15
 
 ### Changed
