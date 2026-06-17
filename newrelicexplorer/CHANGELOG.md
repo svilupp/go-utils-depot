@@ -7,7 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Keep it brief!
 
-## [0.1.0] - 2026-06-17
+## 0.2.0 - 2026-06-17
+
+### Added
+
+- `--human` flag renders any data command's results as a readable table.
+
+### Fixed
+
+- `services` and `services list` now honor `-n`/`--limit`.
+
+## 0.1.0 - 2026-06-17
 
 ### Added
 
