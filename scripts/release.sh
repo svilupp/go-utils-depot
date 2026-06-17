@@ -1,12 +1,43 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-TOOL="${1:?Usage: release.sh <source-dir> <tool> <version>}"
-VERSION="${2:?Usage: release.sh <source-dir> <tool> <version>}"
+# Usage:
+#   release.sh <tool> <version>               # source dir resolved via TOOL_SOURCES, else derived
+#   release.sh <source-dir> <tool> <version>  # explicit source path (always wins)
+#
+# Examples:
+#   ./scripts/release.sh newrelicexplorer v0.1.0
+#   ./scripts/release.sh linear v0.4.2
+#   ./scripts/release.sh /path/to/some-tool some-tool v1.0.0
+#
+# Resolve the scripts/ directory so all paths below are portable (no absolute /
+# home paths committed). Everything is anchored to this.
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# Tool sources for this depot live under the go-training-range checkout, which
+# sits next to go-utils-depot (both are siblings under a common parent). From
+# scripts/ that is: up to the depot root (..), up once more to the common parent
+# (..), then into go-training-range.
+MONOREPO_ROOT="${SCRIPT_DIR}/../../go-training-range"
+
+# Tool -> source-directory registry. The 2-arg form consults this map first.
+# Add new tools here as "${MONOREPO_ROOT}/<tool>" (paths stay relative-anchored,
+# not absolute). Registry paths are resolved to clean absolute paths at runtime.
+# Tools not listed fall back to the legacy derivation (a sibling repo directory
+# next to go-utils-depot).
+declare -A TOOL_SOURCES=(
+  [newrelicexplorer]="${MONOREPO_ROOT}/newrelicexplorer"
+  [linear]="${MONOREPO_ROOT}/linear"
+  [logfire-trace]="${MONOREPO_ROOT}/logfire-trace"
+  [logfire-viewer]="${MONOREPO_ROOT}/logfire-viewer"
+)
+
+TOOL="${1:?Usage: release.sh <tool> <version>  OR  release.sh <source-dir> <tool> <version>}"
+VERSION="${2:?Usage: release.sh <tool> <version>  OR  release.sh <source-dir> <tool> <version>}"
 SOURCE_DIR=""
 
 # If 3 args: release.sh <source-dir> <tool> <version>
-# If 2 args: release.sh <tool> <version> (source-dir = ../<tool> relative to script)
+# If 2 args: release.sh <tool> <version> (source-dir from TOOL_SOURCES, else derived)
 if [ $# -eq 3 ]; then
   SOURCE_DIR="$(cd "$1" && pwd)"
   TOOL="$2"
@@ -14,9 +45,18 @@ if [ $# -eq 3 ]; then
 elif [ $# -eq 2 ]; then
   TOOL="$1"
   VERSION="$2"
-  SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-  # Default: look for sibling repo directory ../../../<tool> (peer to go-utils-depot)
-  SOURCE_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)/${TOOL}"
+  if [ -n "${TOOL_SOURCES[$TOOL]:-}" ]; then
+    # Registered tool: resolve its (relative-anchored) source path to a clean
+    # absolute path so downstream `go build -C` is robust regardless of cwd.
+    REGISTERED="${TOOL_SOURCES[$TOOL]}"
+    SOURCE_DIR="$(cd "$REGISTERED" 2>/dev/null && pwd)" || {
+      echo "Error: registered source directory for '${TOOL}' not found: ${REGISTERED}" >&2
+      exit 1
+    }
+  else
+    # Unknown tool: fall back to a sibling repo directory next to go-utils-depot.
+    SOURCE_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)/${TOOL}"
+  fi
 fi
 
 TAG="${TOOL}/${VERSION}"
@@ -25,8 +65,12 @@ if [ ! -d "$SOURCE_DIR" ]; then
   echo "Error: source directory not found: $SOURCE_DIR"
   echo ""
   echo "Usage:"
-  echo "  release.sh <tool> <version>              # looks for ../<tool>/ next to this repo"
-  echo "  release.sh <source-dir> <tool> <version>  # explicit source path"
+  echo "  release.sh <tool> <version>               # source dir from TOOL_SOURCES registry,"
+  echo "                                            # else ../<tool>/ next to this repo"
+  echo "  release.sh <source-dir> <tool> <version>  # explicit source path (always wins)"
+  echo ""
+  echo "Registered tools (TOOL_SOURCES): ${!TOOL_SOURCES[*]}"
+  echo "Example: release.sh newrelicexplorer v0.1.0"
   exit 1
 fi
 
