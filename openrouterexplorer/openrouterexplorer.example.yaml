@@ -1,0 +1,99 @@
+# openrouterexplorer config - copy to ~/.config/openrouterexplorer/config.yaml (chmod 0600, dir 0700)
+#
+# Binary: openrouterexplorer. Shell alias: orx (offered by `orx init`).
+# Examples in the docs use `orx`.
+#
+# Secrets resolve env-var-first: ${OPENROUTER_API_KEY} is read from the
+# environment at load time; if it is unset, loading FAILS (hard error). Never
+# paste a literal sk-or-... key here; keep it in the env or a secrets manager.
+# `orx init` writes this file for you with hidden token input and offers to add
+# `alias orx="openrouterexplorer"` to your shell rc file; `orx check` validates
+# the config + auth with a cheap GET /credits probe. Legacy `.yml` is also read.
+#
+# =============================================================================
+# THREE PRICE SCALES - the #1 mistake. Do not mix them.
+# =============================================================================
+#   1. model pricing.*            -> "$ per TOKEN", STRINGS (read-only; what the
+#                                     API reports per model, e.g. "0.0000004")
+#   2. catalog.max_price_completion / catalog.min_price
+#                                 -> "$ per MILLION tokens", NUMBERS (Layer A
+#                                     filter -> GET /models?max_price=)
+#   3. routing.max_price.{prompt,completion,...}
+#                                 -> "$ per MILLION tokens" (Layer B routing ->
+#                                     provider.max_price in the chat body; sent
+#                                     as STRINGS on the wire)
+# Both fields you set below (catalog + routing) are $ per MILLION tokens. A value
+# under 0.001 is almost certainly a $/token figure - multiply by 1e6. orx rejects
+# such values at the command boundary (exit 2) before any API call.
+# =============================================================================
+
+# Which profile to use when --profile is not passed.
+default_profile: default
+
+# =============================================================================
+# Profiles - credentials + attribution. Selected with --profile NAME.
+# =============================================================================
+profiles:
+  default:
+    # OpenRouter API key. Env var wins; resolved from ${OPENROUTER_API_KEY} at
+    # load time. Unset -> hard error. Never commit a literal key.
+    api_key: ${OPENROUTER_API_KEY}   # env-first; never commit a literal key
+    # base_url: https://openrouter.ai/api/v1   # optional override
+    # http_referer: https://your.app            # optional attribution (rankings)
+    # x_title: your-app-name                     # optional attribution (rankings)
+
+# =============================================================================
+# Defaults - so agents type the minimum. The default_policy is used whenever
+# --policy is not passed.
+# =============================================================================
+defaults:
+  default_policy: balanced
+
+# =============================================================================
+# Policies - reusable filter + routing bundles. Selected with --policy NAME.
+#
+# Each policy compiles to TWO layers (plus an optional fusion preset):
+#   catalog: (Layer A) -> GET /models query    -> what you BROWSE  (orx models)
+#   routing: (Layer B) -> provider{} in body   -> what RUNS        (orx chat)
+#   fusion:  (optional) -> plugins:[{id:fusion}] in body            (orx fusion)
+#
+# routing.data_collection: deny is the "no training" switch. It is ENFORCE-only:
+# the router binds it, but NO response/generation field reports it back, so orx
+# does NOT fabricate a "does not train" badge - it enforces and trusts.
+# =============================================================================
+# NOTE: catalog.category and catalog.supported_parameters are MUTUALLY EXCLUSIVE
+# on GET /models (OpenRouter returns HTTP 400 if both are sent; orx pre-empts it
+# with a clean exit 2). These policies filter by the programming category; tool-
+# capability is enforced at request time via routing.require_parameters below.
+policies:
+  balanced:
+    catalog:                          # Layer A -> GET /models query
+      category: programming           # mutually exclusive with supported_parameters
+      output_modalities: [text]       # defaults to text; set to see non-text models
+      context_min: 16000              # tokens
+      max_price_completion: 10        # $ per MILLION tokens (NUMBER)
+    routing:                          # Layer B -> provider{} in chat body
+      data_collection: deny           # the "no training" switch (enforce-and-trust)
+      sort: throughput                # price | throughput | latency | exacto
+      max_price: { prompt: 5, completion: 10 }   # $ per MILLION tokens
+      allow_fallbacks: true
+      require_parameters: true        # enforces tool-capability at the routing layer
+
+  cheap-safe:
+    catalog:
+      category: programming           # mutually exclusive with supported_parameters
+      output_modalities: [text]
+      context_min: 32000
+      max_price_completion: 3
+    routing:
+      data_collection: deny
+      sort: price
+      max_price: { prompt: 3, completion: 6 }
+      allow_fallbacks: true
+      require_parameters: true        # enforces tool-capability at the routing layer
+
+  deep:
+    fusion:                           # optional -> plugins:[{id:fusion,...}] in chat body
+      panel: [deepseek/deepseek-chat, qwen/qwen-2.5-72b-instruct]
+      judge: anthropic/claude-haiku-4.5
+      max_completion_tokens: 256

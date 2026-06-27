@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Keep it brief!
 
+## [0.13.0] - 2026-06-27
+
+### Added
+- OpenRouter is now a replay provider: `replay --provider openrouter` (or any `openrouter/…` model, which self-routes) sends recorded conversations through OpenRouter's OpenAI-compatible API; authenticate with `OPENROUTER_API_KEY`
+- `--provider NAME` forces provider routing verbatim (`anthropic|google|openai|openrouter`), skipping model-prefix inference
+- OpenRouter Fusion replay: `--fusion` routes through `openrouter/fusion` (a panel answers, a judge synthesizes); `--fusion-panel a,b,c`, `--fusion-judge MODEL`, and `--fusion-max-tokens INT` configure a custom panel. Fusion is billable and fans out to N panel + 1 judge calls per sample — an unsilenceable cost warning prints before sending (even under `--dry-run`), and panel/judge reject `openrouter/fusion` as a recursion guard
+
 ## [0.12.1] - 2026-06-05
 
 ### Added

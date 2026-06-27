@@ -11,6 +11,7 @@ You have AI agent traces in [Pydantic Logfire](https://logfire.pydantic.dev/) an
 - `lft replay trace.json` -- re-send the last turn against the live API
 - `lft replay <chat_id>` -- replay a Firestore chat directly (auto-detected source)
 - `lft replay <chat.json> --recipe <trace_id>` -- replay a chat with model/tools/settings from a sibling trace
+- `lft replay trace.json --provider openrouter` -- replay against OpenRouter (OpenAI-compatible; add `--fusion` for a multi-model panel + judge)
 - `lft replay trace.json --output-dir .replays/` -- write a `lft.replay.receipt/v1` JSON per invocation
 - `lft replay trace.json --dry-run` -- print the resolved `ReplayConfig` with per-field provenance and exit
 
@@ -90,6 +91,8 @@ ai_providers:
     api_key: ${ANTHROPIC_API_KEY}
   google:
     api_key: ${GOOGLE_API_KEY}
+  openrouter:
+    api_key: ${OPENROUTER_API_KEY}
 
 # Optional: for --chat / --user flags (Firestore integration)
 firestore:
@@ -120,6 +123,11 @@ Receipts include an `input_sha` fingerprint of the rendered request (model, syst
 |---|---|
 | `--recipe <trace_id\|path>` | Trace supplying model/tools/settings; auto-discovered from chat metadata when omitted |
 | `--model <name>` | Override model (replaces `--model-override`; old name kept as deprecated alias) |
+| `--provider <name>` | Force provider routing, used verbatim; skips model-prefix inference. One of `anthropic`, `google`, `openai`, `openrouter` |
+| `--fusion` | Route through OpenRouter Fusion (≡ `--model openrouter/fusion`): a panel answers, a judge synthesizes. Billable |
+| `--fusion-panel <a,b,c>` | Custom Fusion analysis models (CSV); implies `--fusion` |
+| `--fusion-judge <model>` | Custom Fusion judge; implies `--fusion` |
+| `--fusion-max-tokens <int>` | Custom Fusion max completion tokens; implies `--fusion` |
 | `--system-file <path>` | Override system prompt from text file |
 | `--temperature <float>` | Override generation temperature |
 | `--reasoning-effort low\|medium\|high` | CLI-only; not stored in span data |

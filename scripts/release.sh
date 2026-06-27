@@ -27,6 +27,7 @@ MONOREPO_ROOT="${SCRIPT_DIR}/../../go-training-range"
 # next to go-utils-depot).
 declare -A TOOL_SOURCES=(
   [newrelicexplorer]="${MONOREPO_ROOT}/newrelicexplorer"
+  [openrouterexplorer]="${MONOREPO_ROOT}/openrouterexplorer"
   [linear]="${MONOREPO_ROOT}/linear"
   [logfire-trace]="${MONOREPO_ROOT}/logfire-trace"
   [logfire-viewer]="${MONOREPO_ROOT}/logfire-viewer"
