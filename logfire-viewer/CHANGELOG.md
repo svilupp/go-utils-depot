@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Keep it brief!
 
+## [0.3.3] - 2026-07-03
+
+### Fixed
+- Perseus run scenarios now show the main agent's system prompt instead of the guardrails classifier prompt. `trace_enrichment.system_prompt` is sometimes populated upstream with the wrong prompt (scraped from the `guardrails.classify` → `ai.generateText` span); the loader now recovers the correct prompt from the replay trace's primary agent span (`ai.streamText` / `agent.generate.response`) and prefers it, falling back to `trace_enrichment.system_prompt` when no replay trace is available.
+
 ## [0.3.2] - 2026-05-22
 
 ### Changed
