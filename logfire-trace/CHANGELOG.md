@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Keep it brief!
 
+## [0.15.0] - 2026-07-08
+
+### Added
+- `profiles` command (alias `config`): lists all configured profiles with description, token status (✓/✗ + source, e.g. `env:VAR unset`), region/org/project, and default marker; `--json` for scripting. Profiles support a new `description:` field in config.yaml
+- Help now documents the `$LOGFIRE_READ_TOKEN` / `$LOGFIRE_TOKEN` env fallback on `--profile`; pasting a bare chat ID suggests `get -c`
+
+### Fixed
+- One profile with an unset `${VAR}` token no longer fails loading the entire config; the error surfaces only when that profile is actually used
+- Replaying a guardrail/classifier span no longer pulls in unrelated tool definitions from other spans in the trace, which could cause native Google replays to fail with a 400 error or cause weaker models to call an unrelated tool instead of producing the expected classification.
+- Tool schemas replayed against Google's native API now have unsupported JSON-Schema keywords (additionalProperties, exclusiveMinimum, etc.) stripped recursively, including nested schemas, preventing spurious 400 errors.
+
+## [0.14.0] - 2026-06-29
+
+### Added
+- `replay` now supports Python / PydanticAI traces, auto-detected alongside Vercel AI-SDK traces; use `--format pydantic-ai` (or `--format ai-sdk`) to force a specific adapter
+- Tool-call roundtrips, multi-turn truncation, and sampling overrides (e.g. `--temperature`) work on the PydanticAI replay path
+
 ## [0.13.0] - 2026-06-27
 
 ### Added
