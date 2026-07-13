@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Keep it brief!
 
+## [0.2.0] - 2026-07-12
+- Resolves and freezes canonical model slugs before chat or replay, failing clearly on unknown or ambiguous models.
+- Replay now preserves the full routing, privacy, cost, fallback, and Fusion policy in a secure provider-neutral bundle.
+- Dry-runs and `schema --json` expose clearer safety, billing, delegation, and bundle provenance metadata.
+
 ## 0.1.0 - 2026-06-27
 
 ### Added

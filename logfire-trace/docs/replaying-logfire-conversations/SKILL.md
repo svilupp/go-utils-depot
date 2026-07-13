@@ -26,13 +26,14 @@ Replay workflow:
 - [ ] List replay candidates: `logfire-trace replay <source> --list-replay-spans`
 - [ ] Inspect the turn map: `logfire-trace replay <source> --turns`
 - [ ] Validate the boundary: `logfire-trace replay <source> --inspect`
+- [ ] For multiple AI spans, select a stable span ID; numeric indices require `--allow-ambiguous-span`
 - [ ] Prefer canonical selectors from `--turns`
 - [ ] Use `--rewrite` for non-structural edits
 - [ ] Use `--forward-from/--through` when earlier assistant replies contaminate later turns
 
 ## Saving for Review
 
-When you replay anything you might want to look at again — prompt iteration, model comparison, noise sampling — pass `--output-dir <DIR>`. The receipts are cheap, append-only JSON (schema `lft.replay.receipt/v1`) and let you cluster runs later. Same `input_sha` under one `source_trace_id` = noise samples; different `input_sha` = a variant. If you'll do this more than once in a session, `export LFT_OUTPUT_DIR=.replays/` once at the top.
+When you replay anything you might want to look at again — prompt iteration, model comparison, noise sampling — pass `--output-dir <DIR>`. One append-only `lft.replay.receipt/v2` file is written per attempt as it completes; v1 remains readable. Same `input_sha` under one `source_trace_id` = noise samples; different `input_sha` = a variant. If you'll do this more than once in a session, `export LFT_OUTPUT_DIR=.replays/` once at the top.
 
 ```bash
 logfire-trace replay trace.json --output-dir .replays/
@@ -89,7 +90,7 @@ Targets:
 Follow this loop before any provider call:
 
 1. Run `--inspect`.
-2. Confirm `replayable=true`.
+2. Confirm `extractable=true`, `normalized=true`, `replayable=true`, and no blocking issues.
 3. If needed, run `--dry-run | jq '.inspection'`.
 4. If the planner warns about contamination, use `--forward-from` instead of keeping stale later replies.
 5. If the request ends on `assistant`, switch to `--respond-to` or a safer target.
@@ -102,10 +103,12 @@ If the trace contains multiple generation spans:
 
 ```bash
 logfire-trace replay <source> --list-replay-spans
-logfire-trace replay <source> --span 3 --inspect
+logfire-trace replay <source> --span <stable-span-id> --inspect
 ```
 
-The default selector prefers:
+Replay requires a stable span ID when multiple candidates exist; numeric indices
+are available only with `--allow-ambiguous-span` for debugging. The ranking used
+to display candidates prefers:
 
 1. non-guardrail / non-classifier spans
 2. more prompt messages
@@ -160,8 +163,12 @@ If the chat contains tool calls but no tool definitions reach the resolver (no r
 | `--skip-tools` | Run without tools; emits permanent stderr warning |
 | `--dry-run` | Print resolved `ReplayConfig` + provenance and exit |
 | `--dry-run --json` | Emit resolved config as JSON for tooling |
-| `--output-dir <DIR>` | Append a `lft.replay.receipt/v1` JSON to `<DIR>` for every invocation |
+| `--output-dir <DIR>` | Append one redacted `lft.replay.receipt/v2` JSON to `<DIR>` per provider attempt |
 | `--run-id <STRING>` | Optional grouping tag stamped on receipts |
+| `--request-overrides-file <FILE>` | Load a provider-neutral, secret-free, allowlisted request bundle |
+| `--attempt-timeout <DURATION>` | Bound each provider attempt (default `3m`) |
+| `--total-timeout <DURATION>` | Bound the complete replay run (`0` disables) |
+| `--allow-ambiguous-span` | Permit numeric span indices for debugging |
 
 ## Dry-Run Validation
 

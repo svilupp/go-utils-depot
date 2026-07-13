@@ -11,8 +11,8 @@ You have AI agent traces in [Pydantic Logfire](https://logfire.pydantic.dev/) an
 - `lft replay trace.json` -- re-send the last turn against the live API
 - `lft replay <chat_id>` -- replay a Firestore chat directly (auto-detected source)
 - `lft replay <chat.json> --recipe <trace_id>` -- replay a chat with model/tools/settings from a sibling trace
-- `lft replay trace.json --provider openrouter` -- replay against OpenRouter (OpenAI-compatible; add `--fusion` for a multi-model panel + judge)
-- `lft replay trace.json --output-dir .replays/` -- write a `lft.replay.receipt/v1` JSON per invocation
+- `lft replay trace.json --request-overrides-file bundle.json` -- replay through a provider-neutral, policy-pinned bundle
+- `lft replay trace.json --output-dir .replays/` -- write one redacted `lft.replay.receipt/v2` per attempt
 - `lft replay trace.json --dry-run` -- print the resolved `ReplayConfig` with per-field provenance and exit
 
 ## Install
@@ -48,7 +48,7 @@ lft replay logs/trace_abc123.json
 # Replay a Firestore chat with a recipe trace
 lft replay <chat_id> --recipe logs/trace_abc123.json
 
-# Save replay receipts (one JSON per invocation)
+# Save replay receipts (one JSON per provider attempt)
 lft replay logs/trace_abc123.json --output-dir .replays/
 ```
 
@@ -106,7 +106,7 @@ firestore:
 
 ## Replay receipts
 
-Pass `--output-dir <DIR>` (env `LFT_OUTPUT_DIR`) when you'll want to look at a replay again — prompt iteration, model comparison, noise sampling. Each invocation drops one self-contained `lft.replay.receipt/v1` JSON into the folder; the directory is append-only and stays cluster-friendly.
+Pass `--output-dir <DIR>` (env `LFT_OUTPUT_DIR`) when you'll want to look at a replay again — prompt iteration, model comparison, noise sampling. Each provider attempt drops one redacted, hashed `lft.replay.receipt/v2` JSON into the folder; v1 receipts remain readable.
 
 ```bash
 export LFT_OUTPUT_DIR=.replays/
@@ -115,7 +115,7 @@ lft replay logs/trace_abc123.json --temperature 0.7
 jq -r '.input_sha + " " + .input.model' .replays/*.json | sort | uniq -c
 ```
 
-Receipts include an `input_sha` fingerprint of the rendered request (model, system, messages, tools, params). Same `source_trace_id` + same `input_sha` = noise samples; different `input_sha` = a variant. `logfire-viewer` ingests `--output-dir` directories at `/replays` with auto-clustering and a side-by-side prompt-diff compare view.
+Receipts include status/error class, timeout and cost state, semantic span metadata, redaction counts, bundle provenance, component hashes, and an `input_sha` fingerprint. Same `source_trace_id` + same `input_sha` = noise samples; different `input_sha` = a variant.
 
 ## Replay flags
 
@@ -134,8 +134,12 @@ Receipts include an `input_sha` fingerprint of the rendered request (model, syst
 | `--max-output-tokens <int>` | Override max output tokens |
 | `--skip-tools` | Run without tools; emits permanent stderr warning |
 | `--tools-file <path>` | Override tool definitions from JSON |
-| `--output-dir <DIR>` | Append a `lft.replay.receipt/v1` JSON to `<DIR>` for every invocation |
+| `--output-dir <DIR>` | Append a `lft.replay.receipt/v2` JSON to `<DIR>` for every provider attempt |
 | `--run-id <STRING>` | Optional grouping tag stamped on receipts |
 | `--dry-run` / `--dry-run --json` | Print resolved `ReplayConfig` with per-field provenance and exit |
+| `--request-overrides-file <FILE>` | Load a provider-neutral, secret-free, allowlisted request bundle |
+| `--attempt-timeout <DURATION>` | Bound each provider attempt (default `3m`) |
+| `--total-timeout <DURATION>` | Bound the complete replay run (`0` disables) |
+| `--allow-ambiguous-span` | Permit numeric span indices for debugging; stable IDs are preferred |
 
 Full usage guide: [docs/SKILL.md](docs/SKILL.md)

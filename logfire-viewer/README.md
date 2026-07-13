@@ -11,7 +11,7 @@ You have AI agent traces — Logfire JSON, Firestore chat exports, Perseus run d
 - `lfv dump ./runs` -- emit a fused JSON snapshot to stdout
 - `lfv list ./runs --json` -- one row per detected file
 - `lfv saved add <file> --note "..."` -- push traces into the saved-items inbox at `/saved`
-- `lfv serve .replays/` -- ingest a directory of `lft replay --output-dir <DIR>` receipts; auto-clusters at `/replays`
+- `lfv serve .replays/` -- ingest redacted `lft.replay.receipt/v2` attempt receipts (v1 remains readable); auto-clusters at `/replays`
 - Drop traces or whole folders onto the navbar dropzone, or `POST /api/ingest`
 - `Jobs` tab runs `lft get` / `lft replay` as background subprocesses with live SSE output
 

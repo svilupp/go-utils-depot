@@ -31,6 +31,7 @@ declare -A TOOL_SOURCES=(
   [linear]="${MONOREPO_ROOT}/linear"
   [logfire-trace]="${MONOREPO_ROOT}/logfire-trace"
   [logfire-viewer]="${MONOREPO_ROOT}/logfire-viewer"
+  [agent-playbooks]="${MONOREPO_ROOT}/agent-playbooks"
 )
 
 TOOL="${1:?Usage: release.sh <tool> <version>  OR  release.sh <source-dir> <tool> <version>}"
@@ -82,7 +83,11 @@ mkdir -p "$DIST"
 
 COMMIT=$(git -C "$SOURCE_DIR" rev-parse --short HEAD 2>/dev/null || echo "unknown")
 BUILD_TIME=$(date -u '+%Y-%m-%d_%H:%M:%S')
-LDFLAGS="-s -w -X main.version=${VERSION} -X main.commit=${COMMIT} -X main.buildTime=${BUILD_TIME}"
+if [ "$TOOL" = "agent-playbooks" ]; then
+  LDFLAGS="-s -w -X main.version=${VERSION}"
+else
+  LDFLAGS="-s -w -X main.version=${VERSION} -X main.commit=${COMMIT} -X main.buildTime=${BUILD_TIME}"
+fi
 
 PLATFORMS=(
   "linux/amd64"

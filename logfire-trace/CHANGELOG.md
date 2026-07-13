@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Keep it brief!
 
+## [0.16.0] - 2026-07-12
+- Adds safe provider-neutral replay bundles and provider-aware Gemini schema normalization before inference.
+- Receipt v2 writes one redacted, hashed, timeout-aware record per attempt; provider failures now exit non-zero.
+- Multi-span replay requires a stable span ID, while preflight clearly reports transformations, blockers, and billing state.
+
 ## [0.15.0] - 2026-07-08
 
 ### Added

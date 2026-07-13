@@ -41,10 +41,9 @@ If `orx` isn't aliased, call `openrouterexplorer` directly.
 
 Canonical pattern: `orx <cmd> ... 2>/dev/null | jq .`
 
-- **stdout is always valid JSON.** List commands emit a bare array (`[]` when
-  empty); single-record commands (`model`, `credits`, `gen`, `schema`, `check`,
-  `init`, and the billable `chat`/`fusion`/`replay`) emit an object. One encode
-  choke point - never blank, never truncated silently.
+- **Successful machine output is valid JSON.** List commands emit a bare array
+  (`[]` when empty); single-record commands emit an object. Errors use a
+  non-zero exit with diagnostics on stderr and may leave stdout empty.
 - **stderr is human-only**, prefixed `request:` / `note:` / `warning:` / `hint:`
   / `error:`. It echoes the resolved backend request (compiled query string for
   `models`, the `provider`/`plugins` object for `chat`/`fusion`). **Never parse
@@ -80,7 +79,7 @@ else is free (read-only).
 | Command | Cost | What it does |
 | ------- | ---- | ------------ |
 | `models [query]` | free | List/filter the catalog (`GET /models`); `--count` returns cardinality |
-| `model <slug>` | free | Full detail for one model; accepts `author/slug` and `:variant` (resolves to base) |
+| `model <slug>` | free | Full detail; `--resolve --json` freezes requested/canonical IDs and catalog metadata |
 | `endpoints <slug>` | free | Per-provider endpoints for a model: price, latency, throughput, health (no data-policy field) |
 | `providers` | free | Provider directory: HQ country, datacenters, policy-doc URLs (no training flag) |
 | `credits` | free | `{total_credits, total_usage, remaining}` |
@@ -92,7 +91,7 @@ else is free (read-only).
 | `init` | free | Write/preserve config (hidden token input, 0600), offer the `orx` alias |
 | `chat <slug> "msg"` | `[$]` | One completion through the policy's provider routing |
 | `fusion "msg"` | `[$]` | Multi-model fusion (`openrouter/fusion`): a panel answers, a judge synthesizes |
-| `replay <trace\|chat>` | `[$]` | Build the provider/fusion object, hand off to `logfire-trace replay --provider openrouter` |
+| `replay <trace\|chat>` | `[$]` | Freeze the model and policy in a secure provider-neutral bundle, then hand off to `logfire-trace` |
 
 Run `orx <command> --help` for the per-command request template, flag units, and
 examples.
@@ -173,8 +172,8 @@ uses, so it cannot drift.
 - **Credits are eventually consistent.** `GET /credits.total_usage` lags ~1
   call; trust the chat response `usage.cost` over an immediate `orx credits`
   re-read.
-- **`replay` execs an external binary.** It hands off to `logfire-trace replay
-  --provider openrouter`; if the `logfire-trace` CLI is not on `PATH`, `replay
+- **`replay` execs an external binary.** It writes a content-addressed, mode-0600
+  provider-neutral bundle and hands it to `logfire-trace replay`; if the CLI is not on `PATH`, `replay
   --yes` exits 1. Install the logfire-trace CLI before a real replay. `--dry-run`
   just prints the planned invocation and execs nothing.
 - **`rankings` is a recent daily window.** OpenRouter's analytics endpoint serves

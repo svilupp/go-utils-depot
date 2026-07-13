@@ -41,8 +41,9 @@ policies `balanced`, `cheap-safe`, `deep`. The annotated starter config is
 
 Canonical idiom: `orx <cmd> 2>/dev/null | jq`
 
-- **stdout is always valid JSON.** Row commands emit a bare array (`[]` when
-  empty, never blank); single-record commands emit an object.
+- **Successful machine output is valid JSON.** Row commands emit a bare array
+  (`[]` when empty); single-record commands emit an object. Errors use a
+  non-zero exit with diagnostics on stderr and may leave stdout empty.
 - **stderr is human-only**, prefixed `request:` / `note:` / `warning:` / `hint:`
   / `error:`. **Never parse stderr.**
 - **Exit codes** (branch on these): `0` success incl. empty `[]`; `1` runtime
@@ -59,7 +60,7 @@ Canonical idiom: `orx <cmd> 2>/dev/null | jq`
 | Command | What it does |
 |---|---|
 | `orx models [query]` | list/search the catalog under the policy's Layer-A filters |
-| `orx model <slug>` | full detail for one model (pricing, context, modalities, params) |
+| `orx model <slug>` | full detail; use `--resolve --json` to freeze canonical ID and catalog metadata |
 | `orx endpoints <slug>` | per-provider endpoints: price, latency, throughput, uptime, quant |
 | `orx providers` | providers: HQ country, datacenter regions, policy-doc URLs |
 | `orx rankings` | token-share leaderboard aggregated from the daily series |
@@ -71,7 +72,7 @@ Canonical idiom: `orx <cmd> 2>/dev/null | jq`
 | `orx schema --json` | offline machine contract (no API call, no config) |
 | `orx chat <slug> "msg"` | `[$]` one completion via the policy-routed `provider` object |
 | `orx fusion "msg"` | `[$]` multi-model panel + judge via `openrouter/fusion` |
-| `orx replay <trace\|chat>` | `[$]` hand off to `logfire-trace replay --provider openrouter` |
+| `orx replay <trace\|chat>` | `[$]` freeze the policy in a provider-neutral bundle and hand off to `logfire-trace` |
 
 ## Gotchas
 
@@ -95,8 +96,9 @@ Canonical idiom: `orx <cmd> 2>/dev/null | jq`
   training/retention field in `/providers` or `/endpoints`).
 - **`output_modalities` defaults to `text`** — image/audio/embedding models are
   hidden unless you set it explicitly. Easy silent miss.
-- **`replay` hands off to `logfire-trace`** — the `logfire-trace` CLI must be
-  installed and on `PATH`, or `replay --yes` exits 1.
+- **`replay` hands off a secure bundle to `logfire-trace`** — the CLI must be
+  installed and on `PATH`, or `replay --yes` exits 1. The bundle pins the
+  canonical model and full routing/privacy policy.
 
 Authoritative machine contract: `orx schema --json`. Per-command detail:
 `orx <command> --help`.

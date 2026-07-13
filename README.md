@@ -33,6 +33,7 @@ export PATH="$HOME/.local/bin:$PATH"
 | [logfire-viewer](logfire-viewer/) | Local web dashboard for AI conversation traces with multi-source fusion | `eget svilupp/go-utils-depot --tag 'logfire-viewer/'` |
 | [newrelicexplorer](newrelicexplorer/) | New Relic logs & errors CLI (NRQL/NerdGraph, EU) | `eget svilupp/go-utils-depot --tag 'newrelicexplorer/'` |
 | [openrouterexplorer](openrouterexplorer/) | OpenRouter catalog, pricing & policy-routed chat CLI | `eget svilupp/go-utils-depot --tag 'openrouterexplorer/'` |
+| [agent-playbooks](agent-playbooks/) | Portable, harness-aware guidance CLI for coding agents | `eget svilupp/go-utils-depot --tag 'agent-playbooks/'` |
 
 ## Updating
 
@@ -51,4 +52,3 @@ All tools are built for:
 | macOS | Intel (amd64), Apple Silicon (arm64) |
 | Linux | amd64, arm64 |
 | Windows | amd64 |
-
