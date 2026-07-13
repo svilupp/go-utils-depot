@@ -13,6 +13,9 @@ Keep it brief!
 
 - `read` and search auto-read output now show the skill's PATH so relative file references can be resolved.
 - Improved search scoring with titles properly weighted and camelCase term matching; more permissive auto-read (e.g., single-match queries auto-read).
+- `init` now adds an `apb` shell alias to your zshrc.
+- `search --human` output is now clearly structured into a `RESULTS` list (with full descriptions word-wrapped onto aligned continuation lines instead of truncated) and a labeled `BEST MATCH (auto-read)` section, with a hint to run `read` when there's no confident match.
+- Discovery no longer prints a warning on every command for symlinked files that resolve outside a configured root; these are still safely excluded, and now surfaced (once) via `admin doctor` instead of on every `search`/`list`.
 
 ## 0.1.0 - 2026-07-11
 
