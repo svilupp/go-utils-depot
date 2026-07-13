@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Keep it brief!
 
+## 0.2.0 - 2026-07-13
+
+### Added
+
+- `read` and search auto-read output now show the skill's PATH so relative file references can be resolved.
+- Improved search scoring with titles properly weighted and camelCase term matching; more permissive auto-read (e.g., single-match queries auto-read).
+
 ## 0.1.0 - 2026-07-11
 
 ### Added
