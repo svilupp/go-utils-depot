@@ -1,6 +1,6 @@
 ---
 name: linear-cli
-description: Interact with Linear via the `linear` Go CLI — fetch/create/update issues and create/list/get/edit/delete comments across multiple workspaces with profile-based auth, workspace mutation guards, and structured `--error-json` errors. Use when an agent needs to read or modify Linear tickets or workpad comments without touching the GraphQL API directly.
+description: Interact with Linear via the `linear` Go CLI — fetch/create/update issues, list issues by label/state/assignee, create/list/get/edit/delete/upsert comments, and read viewer identity across multiple workspaces with profile-based auth, workspace mutation guards, and structured `--error-json` errors. Use when an agent needs to read or modify Linear tickets or workpad comments without touching the GraphQL API directly.
 ---
 
 # Linear CLI
@@ -10,11 +10,13 @@ Single-binary Go CLI (`linear`) for the Linear API. Profile-driven, multi-worksp
 ## When to Use
 
 - **Read a ticket** by identifier or URL (`AGI-123`, `https://linear.app/.../issue/AGI-123/...`)
+- **List issues** by label / state / assignee with cursor pagination (`issues list`)
 - **Create / update** issues (title, description, parent, labels, state, priority, assignee)
-- **Comments**: create, list, get, edit in place, delete (use this instead of `curl`-ing `api.linear.app/graphql`)
-- **Update a workpad comment in place**: list with `--filter-prefix`, then `comment edit <id> --body-file -`
+- **Comments**: create, list, get, edit in place, delete, upsert (use this instead of `curl`-ing `api.linear.app/graphql`)
+- **Idempotent workpad updates**: prefer `comment upsert --marker` over list+edit; the marker is auto-prepended so the next call edits in place
 - **Multi-workspace**: switch via `--profile <name>` or `LINEAR_PROFILE`
 - **Inside a Dance run**: always pass `--profile` and `--error-json` so the orchestrator can route errors
+- **Identify the bot**: `linear me --json` returns the viewer's user id (useful to exclude its own comments via `comment list --exclude-user`)
 
 ## First Move
 
@@ -50,13 +52,19 @@ linear comment list SVI-15 --json --filter-prefix "## Dance Workpad" \
 | Clear parent | `linear update AGI-123 --clear-parent` |
 | Clear all labels | `linear update AGI-123 --clear-labels` |
 | Create comment | `linear comment create AGI-123 "ack"` |
+| Upsert workpad comment | `linear comment upsert AGI-123 --marker "## Workpad" --body-file workpad.md --json` |
 | List comments | `linear comment list AGI-123 --json --limit 50` |
 | Filter comments by prefix | `linear comment list AGI-123 --json --filter-prefix "## Dance"` |
 | Filter by author | `linear comment list AGI-123 --author jan --json` |
+| Comments since timestamp | `linear comment list AGI-123 --since 2026-05-24T10:00:00Z --json` |
+| Exclude self in poll | `linear comment list AGI-123 --exclude-user <uuid> --json` |
 | Get one comment | `linear comment get <uuid> --json` |
 | Edit comment in place | `linear comment edit <uuid> --body-file workpad.md` |
 | Edit from stdin | `cat body.md \| linear comment edit <uuid> --body-file -` |
 | Delete comment | `linear comment delete <uuid> --yes` |
+| List issues by label | `linear issues list --label dance2:active --json` |
+| List issues paginated | `linear issues list --label dance2:active --json --cursor "..."` |
+| Print viewer identity | `linear me --json` |
 
 For canonical detail run `linear <cmd> --help` (do not duplicate it here).
 
@@ -94,13 +102,47 @@ LINEAR_API_KEY=lin_api_xxx linear init --non-interactive   # CI
 
 ## High-Signal Workflows
 
-### Find the workpad comment by prefix → edit in place
+### Upsert a workpad comment (preferred over list+edit)
+
+```bash
+# First call creates; subsequent calls edit the same comment in place.
+linear comment upsert SVI-15 \
+  --marker "## Dance Workpad" \
+  --body-file workpad.md --json
+# => {"id":"<uuid>","created":true|false}
+```
+
+The marker is auto-prepended to `--body` / `--body-file` content when missing,
+so the next upsert matches by prefix and edits instead of duplicating.
+
+### Find the workpad comment by prefix → edit in place (manual flow)
 
 ```bash
 COMMENT_ID=$(linear comment list SVI-15 --json --filter-prefix "## Dance Workpad" \
   | jq -r '.[0].id')
 [ -n "$COMMENT_ID" ] && [ "$COMMENT_ID" != "null" ] || { echo "no workpad"; exit 1; }
 linear comment edit "$COMMENT_ID" --body-file workpad.md
+```
+
+### Poll for new reply comments while excluding the bot's own posts
+
+```bash
+BOT=$(linear me --json | jq -r .id)
+linear comment list SVI-15 --json \
+  --since 2026-05-24T10:00:00Z \
+  --exclude-user "$BOT"
+```
+
+### List actionable issues by label (cursor-paginated)
+
+```bash
+CURSOR=""
+while :; do
+  PAGE=$(linear issues list --label dance2:active --json ${CURSOR:+--cursor "$CURSOR"})
+  echo "$PAGE" | jq -r '.issues[].identifier'
+  CURSOR=$(echo "$PAGE" | jq -r '.cursor // empty')
+  [ -z "$CURSOR" ] && break
+done
 ```
 
 ### Round-trip a comment body through a transform
@@ -231,4 +273,8 @@ out=$(linear --error-json --profile work comment edit "$id" --body-file - 2> err
 - `linear get` rejects combining `--summary` / `--json` / `--field` / `--output` — pick exactly one. (Enforced at `cmd/get.go:60-77`.)
 - `--field` accepts arbitrary dotted JSON paths into the issue payload (e.g. `id`, `state.name`, `assignee.email`, `parent.identifier`) — not just `parent.identifier`.
 - The legacy positional form `linear comment SVI-15 "msg"` still works but new scripts should use `linear comment create SVI-15 "msg"`.
+- `comment upsert --marker M --body B` auto-prepends `M + "\n\n"` to `B` when `B` doesn't already start with `M`. This is what makes the next `upsert` find the same comment by prefix; do not double-include the marker in your body content.
+- `comment list --since` is server-side (Linear's `comments(filter: {createdAt: {gt: ...}})`); `--exclude-user` is client-side. Both go through `ListCommentsFiltered` rather than `ListComments`.
+- `issues list` does NOT apply active profile defaults — the filter is exactly what you pass. Use `--cursor` from the previous page's `cursor` field for pagination (null means last page).
+- `linear me` is cached per CLI invocation (one round-trip max). Use `--json` and jq to extract `id` when feeding `--exclude-user`.
 - Active profile and stakeholders are echoed at the bottom of every `--help` — handy for confirming you're in the right workspace before mutating.
