@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.0
+
+- `--human` output now adapts to terminal width: wide results (like
+  `issues`/`errors`, with long title/culprit/permalink columns) render as
+  wrapped record blocks — one per row, no truncation, no horizontal
+  scrolling — while narrower results (like `projects`, `releases`,
+  `spikes`) still render as aligned tables. The stdout JSON contract is
+  unchanged.
+
 ## 0.1.0 - Initial release
 
 - Agent-first Sentry explorer CLI (`sentryexplorer`, alias `srx`), modeled on

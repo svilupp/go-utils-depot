@@ -35,7 +35,9 @@ Canonical pattern: `srx <cmd> ... 2>/dev/null | jq .`
   never blank), or an object for `schema`/`issue`/`check`-style detail
   commands.
 - **stderr is human-only** — `error:`/`hint:`/`warning:` lines. Never parse it.
-- **`--human`** (global) renders a table for humans — never use it when piping.
+- **`--human`** (global) renders human-readable output — an aligned table
+  for narrow results, wrapped record blocks for wide results — never use it
+  when piping.
 - **Exit codes**: `0` success, **including empty `[]`**; `1` runtime error
   (API/auth/network); `2` usage error (bad flag, unknown/ambiguous project) —
   caught before any API call.

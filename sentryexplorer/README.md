@@ -90,14 +90,16 @@ Sentry API directly, e.g. `srx query organizations/<org>/projects/`.
 
 - stdout: valid JSON by default, `[]` on empty results, never blank.
 - stderr: human status/warnings/hints only (`hint:`/`warning:`/`error:`).
-- `--human` (global) renders a table instead; it never touches the JSON path.
+- `--human` (global) renders human-readable text instead of JSON, never
+  touching the JSON path: an aligned table for narrow results, or wrapped
+  record blocks for wide results (adapts to terminal width).
 - Exit codes: `0` success (including empty results), `1` runtime error
   (API/auth/network), `2` usage error (bad flags, ambiguous/unknown project,
   wrong arity).
 
 ```bash
 srx issues -p frontend                 # JSON (default; for agents/pipes)
-srx issues -p frontend --human         # aligned table (for humans)
+srx issues -p frontend --human         # human-readable (for humans)
 ```
 
 ## For agents
