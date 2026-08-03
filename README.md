@@ -35,6 +35,7 @@ export PATH="$HOME/.local/bin:$PATH"
 | [sentryexplorer](sentryexplorer/) | Sentry issues & errors CLI (curated projects) | `eget svilupp/go-utils-depot --tag 'sentryexplorer/'` |
 | [openrouterexplorer](openrouterexplorer/) | OpenRouter catalog, pricing & policy-routed chat CLI | `eget svilupp/go-utils-depot --tag 'openrouterexplorer/'` |
 | [agent-playbooks](agent-playbooks/) | Portable, harness-aware guidance CLI for coding agents | `eget svilupp/go-utils-depot --tag 'agent-playbooks/'` |
+| [slack](slack/) | Slack Web API CLI: cached reads, channel polling, rate-limited | `eget svilupp/go-utils-depot --tag 'slack/'` |
 
 ## Updating
 
