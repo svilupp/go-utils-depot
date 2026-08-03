@@ -20,6 +20,7 @@ linear get AGI-123
 ```
 
 `init` asks for your API key (<https://linear.app/settings/api>), team, and pins the workspace so mutations can't go to the wrong place.
+It also generates a private `agent_marker` for automatic agent provenance.
 
 ## Commands
 
@@ -29,10 +30,20 @@ linear get AGI-123
 | `get`          | Fetch a ticket; `--json` or `--field <path>` for scripts                                       |
 | `create`       | New ticket; supports `--parent`, `--label`, `--project`                                        |
 | `update`       | Edit ticket fields (state, priority, assignee, labels, parent)                                 |
-| `issues list`  | List issues; `--label` (repeatable, AND), `--state`, `--assignee`, `--limit`, `--cursor`, `--json` |
+| `issues list`  | List issues; `--label` (repeatable, AND), `--label-prefix` (repeatable, prefix match), `--state`, `--assignee`, `--limit`, `--cursor`, `--json` |
 | `comment`      | Manage comments: `list`, `get`, `edit`, `delete`, `upsert`, or post inline                     |
+| `favorite`     | `add` / `remove` / `list` the viewer's favorited issues                                        |
 | `me`           | Print the authenticated viewer (id, email, name, organization); `--json`                       |
 | `profile`      | `list` / `show` configured profiles                                                            |
+
+`create` and `update` accept `--create-missing-labels`: any `--label` value
+that doesn't already exist in the workspace is created instead of failing
+with "label not found" (workspace-guarded; `--dry-run` reports the names that
+would be created without creating them).
+
+`favorite add`/`favorite remove <identifier>` are idempotent and
+workspace-guarded (no-op if already/not favorited); `favorite list` is
+read-only and viewer-scoped — there is no `--user` flag.
 
 `comment list` also accepts `--since <RFC3339>` (server-side time filter) and
 `--exclude-user <uuid>` (repeatable, client-side). `comment upsert <issue>` is
@@ -56,12 +67,14 @@ profiles:
     api_key: lin_api_xxx
     team_id: <team-uuid>
     workspace_key: svilupp           # pinned by `linear init`
+    agent_marker: linear-agent-...    # generated, keep private
     stakeholders:
       jan: 11111111-1111-1111-1111-111111111111
   personal:
     api_key: ${LINEAR_API_KEY_PERSONAL}   # env vars expanded at load
     team_id: <team-uuid>
     workspace_key: jan-personal
+    agent_marker: linear-agent-...
 ```
 
 Active profile resolution: `--profile <name>` > `LINEAR_PROFILE` > `default_profile` > sole profile > legacy `linear:` block.
@@ -91,7 +104,17 @@ linear comment delete <comment-id> --yes
 
 # Discovery
 linear issues list --label dance2:active --state Todo --json
+linear issues list --label-prefix dance2: --json
 linear me --json
+
+# Favorites
+linear favorite add AGI-1840
+linear favorite remove AGI-1840 --json
+linear favorite list --json
+
+# Create/update with auto-created labels
+linear create "Bug: login broken" --label new-label --create-missing-labels
+linear update AGI-123 --label new-label --create-missing-labels --dry-run
 ```
 
 `issues list --json` returns a paginated envelope:
@@ -135,6 +158,22 @@ Always pass `--profile <name>` explicitly in agent flows so the transcript shows
 
 For pollers: branch on exit `9` (or `code == "UPSTREAM_UNAVAILABLE"`) for retryable upstream failures and back off using `details.retry_after_seconds` before retrying. Exit `4` (`RATE_LIMITED`) also carries `retry_after_seconds`.
 
+### Agent provenance
+
+The CLI detects Codex, Claude, and Pi from environment and process ancestry
+signals.
+
+For detected agent calls:
+
+- comment create, edit, and upsert append an invisible HMAC stamp keyed by the
+  active profile's `agent_marker`
+- comment list and get set `agentAuthored: true` only when that stamp matches
+  the current body, then remove the stamp from command output
+
+Agents do not add a visible signature. Human edits invalidate an old stamp.
+Use `LINEAR_CALLER=human` for a human-intended command launched inside a coding
+harness. `LINEAR_CALLER=agent` forces agent provenance for another wrapper.
+
 ## CI / non-interactive
 
 ```bash
@@ -149,6 +188,7 @@ Env-var references (`${LINEAR_API_KEY}`) are expanded at load time, so the YAML 
 | Variable               | Purpose                                                                                                                       |
 | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
 | `LINEAR_PROFILE`       | Select active profile (overridden by `--profile`).                                                                            |
+| `LINEAR_CALLER`        | Provenance override: `auto`, `human`, `agent`, `codex`, `claude`, or `pi`. Default `auto`.                                     |
 | `LINEAR_API_KEY`       | API key for non-interactive `init`. Also referenced from YAML via `${LINEAR_API_KEY}`.                                        |
 | `LINEAR_TEAM_ID`       | Team UUID for non-interactive `init`.                                                                                         |
 | `LINEAR_HTTP_TIMEOUT`  | HTTP client timeout in Go duration form (e.g. `30s`, `1m`, `45s`). Default `30s`. Clamped to `[1s, 5m]`; out-of-range or unparseable values fall back to the default with a stderr warning. |
