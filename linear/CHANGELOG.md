@@ -6,6 +6,36 @@ The format is based on Keep a Changelog, adapted for this repository.
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-08-03
+
+### Added
+
+- `linear favorite add|remove <identifier>` and `linear favorite list`:
+  manage and list the viewer's favorited issues (viewer-scoped, no
+  `--user`; `add`/`remove` are idempotent and workspace-guarded; `list` is
+  read-only).
+- `--create-missing-labels` on `create` and `update`: creates any `--label`
+  name that doesn't already exist in the workspace instead of failing with
+  "label not found" (workspace-guarded; `--dry-run` reports the names that
+  would be created without creating them).
+- `issues list --label-prefix <prefix>` (repeatable): filter to issues with
+  any label containing the prefix, case-insensitively.
+
+## [0.9.0] - 2026-07-30
+
+### Added
+
+- Agent comments now carry invisible, per-profile provenance. Comment reads
+  expose verified `agentAuthored` state without showing the stamp, while human
+  edits remain human input.
+- Agent issue create and update calls can record exact Next revision receipts.
+  `LINEAR_CALLER=human` provides an explicit override inside coding harnesses.
+
+### Setup
+
+- Run `linear init --profile-name <name>` once for each agent-used profile to
+  generate its private `agent_marker`.
+
 ## [0.8.0] - 2026-07-17
 
 ### Added
