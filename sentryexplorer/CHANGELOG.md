@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.0 - 2026-08-04
+
+- `--human` now renders width-aware truncating tables (with relative ages)
+  for `projects`, `releases`, and `spikes`, matching `issues`/`errors`.
+  `issues`/`errors` also switched from the old record-layout fallback to
+  this same truncating spec, with relative ages and a trimmed column set.
+  Flex columns truncate or drop instead of falling back to record layout.
+  `$COLUMNS` still overrides the detected terminal width.
+
 ## 0.2.0
 
 - `--human` output now adapts to terminal width: wide results (like
