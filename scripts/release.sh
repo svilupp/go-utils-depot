@@ -34,6 +34,7 @@ declare -A TOOL_SOURCES=(
   [logfire-viewer]="${MONOREPO_ROOT}/logfire-viewer"
   [agent-playbooks]="${MONOREPO_ROOT}/agent-playbooks"
   [slack]="${MONOREPO_ROOT}/slack"
+  [argocdexplorer]="${MONOREPO_ROOT}/argocdexplorer"
 )
 
 TOOL="${1:?Usage: release.sh <tool> <version>  OR  release.sh <source-dir> <tool> <version>}"

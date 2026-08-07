@@ -47,6 +47,14 @@ logfire-trace get -s 019b93fef58a772e9ce3b26b756ced88
 logfire-trace get -t 019b93fef58a772e9ce3b26b756ced88
 ```
 
+If `firestore.lookup_chats_collection` is configured, `get --chat`/`-c` may
+transparently fall back through that lookup collection: when the ID misses the
+primary collection, the CLI reads the lookup doc's `conversationId` and
+re-queries the primary collection by it. A successful fallback prints a
+breadcrumb to stderr — `Note: chat not found in '<primary>'; resolved via
+lookup collection '<lookup>' (conversationId <id>)` — meaning the chat was
+recovered via the secondary collection, not that anything failed.
+
 ## Replay Workflow
 
 Copy this checklist:
@@ -81,15 +89,14 @@ logfire-trace replay -c YOlefE2UTuJ87F73ghLp --span 15 --inspect
 8. Expect `--turns` to mark synthetic session-start messages and unwrap common `<user_input>` wrappers so you can pick the real shopper turn faster.
 9. For `--forward-from ... --dry-run`, read `inspection.forward_steps` and `steps`; dry-run validates the sequence but does not emit per-step replay results.
 10. Treat `--no-thinking` as provider-specific; OpenAI `gpt-5.4` / `gpt-5.2` currently reject it whenever the rebuilt request still carries tool definitions.
+11. `-p` means `--profile` on `get`, `query`, and `check`. On `replay`, `-p` is the legacy `--position` shorthand — use the long `--profile` with replay to avoid clashing with it.
+12. If replay extraction looks wrong, or you hit "no adapter matched", try forcing `--format pydantic-ai` (or `--format ai-sdk`) — auto-detection can misfire on mixed-instrumentation traces.
 
 ## Common Patterns
 
 ```bash
-# Preview an unfamiliar query first (caps at 50 rows; recommended for agents)
-logfire-trace query --sample "SELECT * FROM records WHERE span_name LIKE 'agent.%'"
-
-# Find candidate traces (default lookback is --since 30d; pass -S 90d to widen)
-logfire-trace query "SELECT trace_id FROM records ORDER BY start_timestamp DESC LIMIT 20"
+# Find candidate traces first
+logfire-trace query -S 30d "SELECT trace_id FROM records ORDER BY start_timestamp DESC"
 
 # Fetch then replay
 logfire-trace get <trace_id>
@@ -98,6 +105,32 @@ logfire-trace replay logs/trace_<id>.json --inspect
 # Chat-first path
 logfire-trace replay -c <chat_id> --list-replay-spans
 ```
+
+## Aggregate trace analysis: common pitfalls
+
+Hard-won lessons from a production incident where a reported count got retracted twice:
+
+- **Never** match error codes with `attributes::text ILIKE '%CODE%'` — error-code tables
+  are embedded in system prompts, so this matches nearly every trace (540 vs a true ~30
+  in one incident). Query the structured attribute on the tool span instead (e.g.
+  `tool.error_code`, `ai.toolCall.result`).
+- Count tool calls on `ai.toolCall` spans (1:1 with live executions), never by
+  pattern-matching `doStream` spans or `ai.prompt.messages` — conversation history
+  replays past events on every later turn (~8x inflation observed). For model-output
+  conditions, scope to `ai.response.toolCalls` only.
+- Exclude test traffic: `attributes->>'conversation.id' LIKE 'test-conv-%'`, known test stores, and
+  filter `deployment_environment = 'production'`. Test/eval harness bursts have
+  contaminated counts by 32–99%. Synthetic tells: ~2ms durations, missing expected
+  child spans.
+- NULL traps: `col LIKE ...` / `col ~ ...` evaluate to NULL (not FALSE) when `col` IS
+  NULL, so `COUNT(*) FILTER (WHERE ...)` silently drops those rows — often the worst
+  failures. Add explicit `OR col IS NULL OR is_exception`.
+- Dimension fields (e.g. `store.id`) may not live on the span you're aggregating — join
+  via `trace_id`, or rows silently drop.
+- State your denominator explicitly and check the complement population; anchoring on
+  "traces like the reported example" hid 54% of defects in one investigation.
+- Distinguish domain-valid error codes (e.g. `SEARCH_NO_RESULTS`) from infrastructure
+  errors before computing error rates.
 
 ## Filing traces for review (logfire-viewer saved)
 
@@ -122,7 +155,8 @@ inline.
 
 ### Workflow
 
-1. Fetch candidate traces with `lft fetch <query>`.
+1. Find candidate traces with `logfire-trace query -S 7d "<sql>"`, then fetch each hit
+   with `logfire-trace get <trace_id>`.
 2. For each trace that matches the user's criteria:
 
    ```bash

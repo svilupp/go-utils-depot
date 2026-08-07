@@ -72,7 +72,7 @@ nrx errors -s checkout --since 6h
 
 # latency / health / slow traces - mind the units
 nrx latency -s agents -e production --percentile 50,95,99 -S 1h   # unit: seconds
-nrx health  -s window-shop-core-api                                # requests/errorRate/rpm/percentiles
+nrx health  -s my-service-api                                      # requests/errorRate/rpm/percentiles
 nrx traces slow -s agents --min-ms 2000 -S 30m                     # unit: ms
 
 # deploys (account-wide, sparse), shareable link, raw NRQL
@@ -108,12 +108,15 @@ Authoritative and never stale - prefer them over memorizing flags.
   services), `no_env` (single entity), `match` (broad pattern spanning envs). For
   `no_env` and `match`, **`--env` is ignored** (CLI prints a stderr advisory) - don't
   read env scoping into those results.
-- Cases to remember: `window-shop-inventory` has **staging/dev only, no production**
-  (use `--env staging`); `window-shop-ai-product-intelligence` and
-  `window-shop-ai-evaluations` are `no_env`; `window-shop-ai-analytics` is `match`
+- Cases to remember: `my-service-inventory` has **staging/dev only, no production**
+  (use `--env staging`); `agents-intelligence` and
+  `agents-evaluations` are `no_env`; `agents-analytics` is `match`
   (mixes prod + dev).
 - **17 curated services**; 3 are intentionally dark (`reporting:false`):
-  `window-shop-cron-jobs`, `window-shop-pilot-web`, `wire-worker`.
+  `my-service-cron`, `my-service-web`, `other-worker`.
+- Names above are illustrative placeholders — always confirm the real,
+  current entity names for your account with `nrx services` and
+  `nrx services list` rather than assuming these examples still match.
 
 ## Filters
 
@@ -176,9 +179,9 @@ Authoritative and never stale - prefer them over memorizing flags.
    nrx query "SELECT count(*) FROM Log WHERE level LIKE 'err%' FACET entity.name SINCE 6 hours ago LIMIT 30"
    nrx query "SELECT count(*) FROM Log WHERE entity.name = '<ent>' FACET message SINCE 6 hours ago LIMIT 30"
    ```
-   Many high-traffic entities aren't curated (`swap-shopify-app`, `global-server`,
+   Many high-traffic entities aren't curated (`other-app`, `other-server`,
    `tax-calculation-service`, `returns-server`, `billing-server`) - find them via FACET, not `-s`.
-5. **`changes` excludes `window-shop-*`**, so deploy-to-error correlation isn't possible
+5. **`changes` excludes curated services' own naming prefix**, so deploy-to-error correlation isn't possible
    there. Find an error's onset from logs instead - the first non-zero bucket:
    ```bash
    nrx query "SELECT count(*) FROM Log WHERE entity.name LIKE '<svc>:prod%' AND message = '<exact>' TIMESERIES 30 minutes SINCE 7 days ago"

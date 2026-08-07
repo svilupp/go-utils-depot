@@ -129,9 +129,10 @@ Receipts include status/error class, timeout and cost state, semantic span metad
 | `--fusion-judge <model>` | Custom Fusion judge; implies `--fusion` |
 | `--fusion-max-tokens <int>` | Custom Fusion max completion tokens; implies `--fusion` |
 | `--system-file <path>` | Override system prompt from text file |
-| `--temperature <float>` | Override generation temperature |
+| `--temperature <float>` | Override generation temperature (omit to keep recorded value) |
+| `--format ai-sdk\|pydantic-ai` | Force replay source format; default auto-detect. Use if extraction looks wrong or no adapter matches |
 | `--reasoning-effort low\|medium\|high` | CLI-only; not stored in span data |
-| `--max-output-tokens <int>` | Override max output tokens |
+| `--max-output-tokens <int>` | Override max output tokens (omit to keep recorded value) |
 | `--skip-tools` | Run without tools; emits permanent stderr warning |
 | `--tools-file <path>` | Override tool definitions from JSON |
 | `--output-dir <DIR>` | Append a `lft.replay.receipt/v2` JSON to `<DIR>` for every provider attempt |
@@ -142,4 +143,4 @@ Receipts include status/error class, timeout and cost state, semantic span metad
 | `--total-timeout <DURATION>` | Bound the complete replay run (`0` disables) |
 | `--allow-ambiguous-span` | Permit numeric span indices for debugging; stable IDs are preferred |
 
-Full usage guide: [docs/SKILL.md](docs/SKILL.md)
+Full usage guide: [docs/logfire-trace-cli/SKILL.md](docs/logfire-trace-cli/SKILL.md) · Replay guide: [docs/replaying-logfire-conversations/SKILL.md](docs/replaying-logfire-conversations/SKILL.md)

@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Keep it brief!
 
+## [0.16.1] - 2026-07-25
+Docs-only release, no behavior changes.
+- Fixed stale docs: `--since` (now `min_timestamp`, no SQL rewriting), `--dry-run --json | jq`, trace-ID shortcut accepts flags; deprecated flags consolidated into one README appendix.
+- `query --help`: added a tool-call counting SQL recipe; clarified replay flag help (`--temperature`/`--max-output-tokens`, `--output` vs `--output-dir`, `--format`, replay `-p` ≠ `--profile`).
+- Skill docs synced (receipt v2, removed nonexistent `lft fetch`) and extended with an "Aggregate trace analysis: common pitfalls" section.
+
 ## [0.16.0] - 2026-07-12
 - Adds safe provider-neutral replay bundles and provider-aware Gemini schema normalization before inference.
 - Receipt v2 writes one redacted, hashed, timeout-aware record per attempt; provider failures now exit non-zero.

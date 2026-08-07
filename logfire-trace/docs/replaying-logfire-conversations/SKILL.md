@@ -26,7 +26,6 @@ Replay workflow:
 - [ ] List replay candidates: `logfire-trace replay <source> --list-replay-spans`
 - [ ] Inspect the turn map: `logfire-trace replay <source> --turns`
 - [ ] Validate the boundary: `logfire-trace replay <source> --inspect`
-- [ ] For multiple AI spans, select a stable span ID; numeric indices require `--allow-ambiguous-span`
 - [ ] Prefer canonical selectors from `--turns`
 - [ ] Use `--rewrite` for non-structural edits
 - [ ] Use `--forward-from/--through` when earlier assistant replies contaminate later turns
@@ -61,70 +60,6 @@ The first positional argument is auto-detected by content shape:
 
 `-c/--chat` and `--conversation` remain available for the legacy chat-first / conversation-first replay flow that resolves traces, lists candidate spans, and replays from there.
 
-## Actions
-
-```bash
-logfire-trace replay <source> --respond-to turn:1.tool:0
-logfire-trace replay <source> --regenerate turn:1.response
-logfire-trace replay <source> --rewrite system -i prompt.txt --respond-to turn:1.tool:0
-logfire-trace replay <source> --rewrite system -i prompt.txt --forward-from turn:0.tool:0 --through turn:1.tool:0
-logfire-trace replay <source> --replace user:7 -i override.txt
-```
-
-- `--rewrite TARGET -i FILE`: rewrite `TARGET` in place while preserving transcript shape
-- `--respond-to TARGET`: keep `TARGET` and ask for the next assistant response
-- `--regenerate TARGET`: remove `TARGET` and replay from the prior boundary
-- `--forward-from A --through B`: regenerate dependent responses sequentially from `A` through `B`
-- `--replace TARGET -i FILE`: legacy rewrite+truncate behavior kept temporarily for compatibility
-
-Targets:
-
-- `system`
-- `turn:N.user`
-- `turn:N.tool:M`
-- `turn:N.response`
-- compatibility aliases: `last`, `user:N`, `assistant:N`, `tool:N`, `msg:N`
-
-## Validation Loop
-
-Follow this loop before any provider call:
-
-1. Run `--inspect`.
-2. Confirm `extractable=true`, `normalized=true`, `replayable=true`, and no blocking issues.
-3. If needed, run `--dry-run | jq '.inspection'`.
-4. If the planner warns about contamination, use `--forward-from` instead of keeping stale later replies.
-5. If the request ends on `assistant`, switch to `--respond-to` or a safer target.
-6. For `--forward-from ... --dry-run`, inspect `inspection.forward_steps` and `steps`; dry-run validates the sequence but does not emit per-step replay `results`.
-7. Treat `--no-thinking` as provider-specific: Anthropic works, Gemini 3 is best-effort, Gemini 2.5 Pro is unsupported, and OpenAI `gpt-5.4` / `gpt-5.2` currently cannot use it when the rebuilt request still carries tool definitions.
-
-## Span Selection
-
-If the trace contains multiple generation spans:
-
-```bash
-logfire-trace replay <source> --list-replay-spans
-logfire-trace replay <source> --span <stable-span-id> --inspect
-```
-
-Replay requires a stable span ID when multiple candidates exist; numeric indices
-are available only with `--allow-ambiguous-span` for debugging. The ranking used
-to display candidates prefers:
-
-1. non-guardrail / non-classifier spans
-2. more prompt messages
-3. spans with tools and chat/conversation cross references
-4. later timestamps only as a tie-breaker
-
-## Common Failure Modes
-
-1. Legacy `-p user:N` removes the target user turn and leaves the request ending on `assistant`.
-2. The trace contains both main-agent and guardrail/classifier generations, so the wrong span gets selected.
-3. The rebuilt request ends on `assistant` or has no request messages.
-4. A chat document file is used as replay input instead of a trace source.
-5. A prompt rewrite is tested against a later turn while earlier assistant replies still encode the old behavior.
-
-The planner now catches non-replayable requests before provider calls and prints safer suggestions.
-
 ## Recipe Trace Workflow
 
 A chat alone is missing model, tool definitions, and generation settings. Supply them with a recipe trace.
@@ -154,21 +89,15 @@ If the chat contains tool calls but no tool definitions reach the resolver (no r
 
 | Flag | Purpose |
 |---|---|
-| `--recipe <trace_id\|path>` | Trace supplying model/tools/settings; auto-discovered from chat metadata when omitted |
+| `--recipe <trace_id|path>` | Trace supplying model/tools/settings; auto-discovered from chat metadata when omitted |
 | `--model <name>` | Override model (replaces `--model-override`; old name kept as deprecated alias, conflict errors) |
 | `--system-file <path>` | Override system prompt from text file |
 | `--temperature <float>` | Override generation temperature |
-| `--reasoning-effort low\|medium\|high` | CLI-only; not stored in span data |
+| `--reasoning-effort low|medium|high` | CLI-only; not stored in span data |
 | `--max-output-tokens <int>` | Override max output tokens |
 | `--skip-tools` | Run without tools; emits permanent stderr warning |
 | `--dry-run` | Print resolved `ReplayConfig` + provenance and exit |
 | `--dry-run --json` | Emit resolved config as JSON for tooling |
-| `--output-dir <DIR>` | Append one redacted `lft.replay.receipt/v2` JSON to `<DIR>` per provider attempt |
-| `--run-id <STRING>` | Optional grouping tag stamped on receipts |
-| `--request-overrides-file <FILE>` | Load a provider-neutral, secret-free, allowlisted request bundle |
-| `--attempt-timeout <DURATION>` | Bound each provider attempt (default `3m`) |
-| `--total-timeout <DURATION>` | Bound the complete replay run (`0` disables) |
-| `--allow-ambiguous-span` | Permit numeric span indices for debugging |
 
 ## Dry-Run Validation
 
@@ -182,3 +111,69 @@ logfire-trace replay logs/chat.json --recipe 019aabbccdd... --dry-run --json | j
 ## --skip-tools Fidelity Caveat
 
 `--skip-tools` is the opt-in escape hatch when the chat called tools you cannot reproduce. It runs the model with no tool schemas, so the replayed turn is not 1:1 with production behavior. The CLI emits a permanent stderr warning every time it is used; this is intentional and cannot be silenced. Prefer `--recipe` or `--tools-file` whenever possible.
+
+## Actions
+
+```bash
+logfire-trace replay <source> --respond-to turn:1.tool:0
+logfire-trace replay <source> --regenerate turn:1.response
+logfire-trace replay <source> --rewrite system -i prompt.txt --respond-to turn:1.tool:0
+logfire-trace replay <source> --rewrite system -i prompt.txt --forward-from turn:0.tool:0 --through turn:1.tool:0
+logfire-trace replay <source> --replace user:7 -i override.txt
+```
+
+- `--rewrite TARGET -i FILE`: rewrite `TARGET` in place while preserving transcript shape
+- `--respond-to TARGET`: keep `TARGET` and ask for the next assistant response
+- `--regenerate TARGET`: remove `TARGET` and replay from the prior boundary
+- `--forward-from A --through B`: regenerate dependent responses sequentially from `A` through `B`
+- `--replace TARGET -i FILE`: legacy rewrite+truncate behavior kept temporarily for compatibility
+
+Targets:
+
+- `system`
+- `turn:N.user`
+- `turn:N.tool:M`
+- `turn:N.response`
+- compatibility aliases: `last`, `user:N`, `assistant:N`, `tool:N`, `msg:N`
+
+## Validation Loop
+
+Follow this loop before any provider call:
+
+1. Run `--inspect`.
+2. Confirm `replayable=true`.
+3. If needed, run `--dry-run --json | jq '.inspection'`.
+4. If the planner warns about contamination, use `--forward-from` instead of keeping stale later replies.
+5. If the request ends on `assistant`, switch to `--respond-to` or a safer target.
+6. For `--forward-from ... --dry-run`, inspect `inspection.forward_steps` and `steps`; dry-run validates the sequence but does not emit per-step replay `results`.
+7. Treat `--no-thinking` as provider-specific: Anthropic works, Gemini 3 is best-effort, Gemini 2.5 Pro is unsupported, and OpenAI `gpt-5.4` / `gpt-5.2` currently cannot use it when the rebuilt request still carries tool definitions.
+8. If extraction looks wrong, or you get "no adapter matched", try forcing `--format pydantic-ai` (or `--format ai-sdk`) — auto-detection can misfire on mixed-instrumentation traces.
+
+## Span Selection
+
+If the trace contains multiple generation spans:
+
+```bash
+logfire-trace replay <source> --list-replay-spans
+logfire-trace replay <source> --span 3 --inspect
+```
+
+The default selector prefers:
+
+1. non-guardrail / non-classifier spans
+2. more prompt messages
+3. spans with tools and chat/conversation cross references
+4. later timestamps only as a tie-breaker
+
+## Common Failure Modes
+
+1. Legacy `-p user:N` removes the target user turn and leaves the request ending on `assistant`.
+2. The trace contains both main-agent and guardrail/classifier generations, so the wrong span gets selected.
+3. The rebuilt request ends on `assistant` or has no request messages.
+4. A chat document file is used as replay input instead of a trace source.
+5. A prompt rewrite is tested against a later turn while earlier assistant replies still encode the old behavior.
+6. Replay does **not** reflect tool-side code changes — it re-sends the recorded tool responses verbatim. Only prompt, model, and message changes are testable via replay; if the tool implementation changed, the replayed tool output is stale.
+
+The planner now catches non-replayable requests before provider calls and prints safer suggestions.
+
+Run `-n 3` or `-n 5` for statistical confidence before drawing conclusions from a single replay. When you need to know whether a regression is prompt-driven or model-driven, `--model` override is the fastest discriminator — replay the same input against a different model before touching the prompt.
