@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Keep it brief!
 
+## [0.4.0] - 2026-08-11
+
+### Added
+- Eval config explorer at `/evals`, enabled by `--evals <dir>`. Browses eval *definitions* — the scenario and manifest TOMLs — as opposed to the run results the rest of the viewer shows. Recognizes files **by content, not by directory layout**: point it at a repo root, a `config/` dir, or a `logs/` dir and it walks the tree and loads what it understands. Finds nothing it recognizes ⇒ the section stays off entirely (no nav link, 404 on every `/evals*` route) rather than showing a dead tab.
+- `/evals/specs` searches and filters every spec by category, subcategory, store, message mode, asserted tool, criterion id, assertion type, and orphan status. Each row carries a one-line headline (first sentence of the spec's own description) plus a fact strip summarising what the spec mechanically enforces (`calls product_search`, `cart_v2.mode equals add`, `assistant never says "<thinking>"`, `no tools allowed`). Criterion descriptions are searchable via an opt-in `include criteria text` toggle — they are the bulk of the corpus text and mostly boilerplate rubric prose, so including them by default destroys relevance.
+- `/evals/specs/{rel_path}` resolves cross-references by discovery rather than fixed paths: store and persona configs (indexed by filename stem), shared criteria with shadowing, and flags inherited from ancestor sidecars with per-row provenance. Unresolved references render a red badge so a mis-pointed root is visible instead of silent. Also shows the leading comment block as a rationale panel where present, an assertion table pruned to only the columns that spec actually uses, and which manifests reference the spec.
+- `/evals/manifests` groups near-identical manifests into clusters keyed on their case set, showing the shared cases once and then only the fields that differ between members — one screen in place of diffing dozens of near-identical files. `?view=flat` lists manifests individually.
+- Run directories are discovered but never parsed until requested: newest-first, capped at 100 with paging, so pointing at a tree with gigabytes of run output stays sub-second. A `load` button pulls one into the trace viewer through the existing `POST /api/load`.
+- JSON API: `GET /api/evals/specs`, `GET /api/evals/specs/{rel_path}`, `GET /api/evals/manifests`, `GET /api/evals/rundirs?offset=&limit=`, `POST /api/evals/reload` (re-reads the catalog without a restart). All eval routes exist only when `--evals` is set and the catalog is non-empty.
+- Config file at `~/.config/logfire-viewer/config.json` (`evals_dir`, `evals_max_depth`, `evals_max_rundirs`, `evals_skip_dirs`), written by `init`. Precedence is flag > `$LFV_EVALS_*` env > config file > default. The skip list ships sane defaults (`node_modules`, `.venv`, `.git`, build/cache dirs) and deliberately excludes `logs`; depth is bounded (default 10) with the walk reporting when it truncated.
+- Nav gained a section switcher (Runs · Replays · Evals · Jobs) with active highlighting, a `g e` chord, and eval specs plus manifests in the ⌘K palette.
+
+### Changed
+- `assets/table.js` supports a `data-extra-params` attribute so a page can declare filter params beyond the driver's built-in `q/from/until/sort/dir/preset` set and have them survive live table refreshes. Pages that don't set it are unaffected.
+
 ## [0.3.3] - 2026-07-03
 
 ### Fixed

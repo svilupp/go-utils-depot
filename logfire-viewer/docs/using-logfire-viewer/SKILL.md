@@ -1,6 +1,6 @@
 ---
 name: using-logfire-viewer
-description: Visual companion to `logfire-trace` (lft). Use the logfire-viewer CLI and HTTP API (alias `lfv`) to browse and fuse AI conversation traces produced by the internal agent-testing harness, by exported Firestore chat documents, or by raw Logfire trace JSON. Push traces from a running agent, drive `lft` fetch/replay as background jobs, and deep-link the user to a specific run, scenario, or conversation. Use when the user mentions `logfire-viewer`, `lfv`, agent-testing harness logs, or wants to visually inspect anything `lft` can fetch.
+description: Visual companion to `logfire-trace` (lft). Use the logfire-viewer CLI and HTTP API (alias `lfv`) to browse and fuse AI conversation traces produced by the internal agent-testing harness, by exported Firestore chat documents, or by raw Logfire trace JSON. Push traces from a running agent, drive `lft` fetch/replay as background jobs, and deep-link the user to a specific run, scenario, or conversation. With `--evals <dir>` it also browses eval *definitions* — scenario and manifest TOMLs discovered by content anywhere under a folder — so you can search what an eval tests and which manifests reference it. Use when the user mentions `logfire-viewer`, `lfv`, agent-testing harness logs, eval scenarios or manifests, or wants to visually inspect anything `lft` can fetch.
 ---
 
 # Using logfire-viewer
@@ -52,6 +52,39 @@ conversation appear merged in the dashboard.
    # block on the READY line on stdout, then hit the API
    curl -s http://127.0.0.1:18081/llms.txt
    ```
+
+## Eval configs (`--evals`)
+
+Everything above reads run *results*. `--evals <dir>` turns on a second,
+independent surface for eval *definitions* — the scenario and manifest
+TOMLs themselves:
+
+```bash
+lfv serve --quiet --evals ~/code/my-monorepo/tools &
+curl -s '127.0.0.1:18081/api/evals/specs?cat=basic&refs=orphan' | jq '.matched'
+curl -s '127.0.0.1:18081/api/evals/manifests'                   | jq '.clusters | length'
+```
+
+Key facts for an agent:
+
+- Files are recognized **by content, not by directory layout**. Point it
+  at a repo root, a `config/` dir, or a `logs/` dir. If nothing is
+  recognized, the section is disabled and every `/evals*` route 404s —
+  check for that before assuming an empty corpus is a query mistake.
+- A spec's identity is its **slash-separated path relative to the root,
+  without `.toml`** — not its `name` field, which repeats across the
+  corpus. That path is the URL segment and the JSON key.
+- Filters on `/api/evals/specs`: `q` (whitespace-AND terms, plus
+  `tool:` `store:` `cat:` `mode:` `crit:` `assert:` prefixes), and the
+  params `cat`, `sub`, `store`, `mode`, `tool`, `crit`, `assert`,
+  `refs=orphan|referenced`, `issues=1`, `deep=1`. Params win over `q`
+  prefixes. `deep` is off by default — it adds criterion descriptions,
+  which are most of the corpus text.
+- `POST /api/evals/reload` re-reads the catalog without a restart.
+  Enabling the section, though, requires `--evals` at startup.
+- Run directories are listed but **not parsed** until you ask. Load one
+  into the trace viewer with `POST /api/load?path=<abs>` — that is the
+  bridge from a spec to the runs that executed it.
 
 ## Discovering the API
 

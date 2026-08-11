@@ -12,6 +12,7 @@ You have AI agent traces — Logfire JSON, Firestore chat exports, Perseus run d
 - `lfv list ./runs --json` -- one row per detected file
 - `lfv saved add <file> --note "..."` -- push traces into the saved-items inbox at `/saved`
 - `lfv serve .replays/` -- ingest redacted `lft.replay.receipt/v2` attempt receipts (v1 remains readable); auto-clusters at `/replays`
+- `lfv serve --evals <dir>` -- browse eval *definitions* (scenario + manifest TOMLs) at `/evals`; see [Eval configs](#eval-configs)
 - Drop traces or whole folders onto the navbar dropzone, or `POST /api/ingest`
 - `Jobs` tab runs `lft get` / `lft replay` as background subprocesses with live SSE output
 
@@ -53,7 +54,7 @@ Then open http://127.0.0.1:18081.
 | `init`    | Interactive setup; installs the `lfv` shell alias                  |
 | `version` | Print the version (also `--version` / `-v`)                        |
 
-`serve` flags: `--port` (default `18081`), `--open`, `--watch`, `--quiet`/`-q`, `--lft-bin`.
+`serve` flags: `--port` (default `18081`), `--open`, `--watch`, `--quiet`/`-q`, `--lft-bin`, `--evals <dir>`, `--evals-max-depth` (default `10`), `--evals-max-rundirs` (default `100`).
 
 ## Sources
 
@@ -95,6 +96,13 @@ Files larger than 50MB are skipped.
 | `GET /llms.txt`                | Markdown agent guide (read this from an agent)   |
 | `GET /openapi.json`            | OpenAPI 3.0 spec for the JSON API                |
 | `GET /events`                  | SSE stream of store/event updates                |
+| `GET /api/evals/specs`         | Eval specs, honouring the same filters as the UI |
+| `GET /api/evals/specs/{path}`  | One spec plus the manifests referencing it       |
+| `GET /api/evals/manifests`     | Manifests and their clusters                     |
+| `GET /api/evals/rundirs`       | Discovered run dirs, paged (`?offset=&limit=`)   |
+| `POST /api/evals/reload`       | Re-read the eval catalog (no restart)            |
+
+The `/api/evals/*` routes exist only when `--evals` is set and the catalog is non-empty.
 
 `serve --quiet` writes only `READY <url>` to stdout — block on that line before making API calls.
 
@@ -108,8 +116,9 @@ Files larger than 50MB are skipped.
 - `/replays` -- replay sessions clustered by `source_trace_id` × `input_sha` with prompt-diff compare view
 - `/saved` -- saved-items inbox with star, notes, tags, and live updates
 - `/jobs` -- background lft jobs with status and live output
+- `/evals` -- eval config explorer (only with `--evals`)
 - ⌘K or `/` -- search palette; `?` -- help drawer
-- Keys: `j`/`k` move row focus, `Enter` opens, `[`/`]` (or `h`/`l`) prev/next scenario, `f` focus filter, `1`-`4` cycle status, `g r` returns to runs index
+- Keys: `j`/`k` move row focus, `Enter` opens, `[`/`]` (or `h`/`l`) prev/next scenario, `f` focus filter, `1`-`4` cycle status, `g r` returns to runs index, `g e` jumps to the eval explorer
 
 Localhost-only dev tool — no auth. Don't expose beyond `127.0.0.1`.
 
@@ -146,5 +155,25 @@ logfire-viewer serve .replays/ --open
 `/replays` clusters receipts by `source_trace_id` × `input_sha`. Same `input_sha` = noise samples; different `input_sha` under the same trace = a variant. Use the side-by-side compare view to diff two clusters.
 
 `/replays/family/{hash}` collapses the noise dimension across sessions: every sample sharing the same shared input (system prompt + messages + tool definitions, regardless of model or sampling params) renders side-by-side so you can read N stochastic outputs in one view. Each variant in the session tree links to its family with a `▶ View all samples · N` button when 2+ samples exist.
+
+## Eval configs
+
+Everything above is about run *results*. `--evals` is the other half: a browser for the eval *definitions* — the scenario and manifest TOMLs themselves.
+
+```bash
+logfire-viewer serve --evals ~/code/my-monorepo/tools --open
+# evals … — 1050 spec(s), 8 manifest(s), 100/669 run dir(s) in 164ms
+```
+
+Point it at anything — a repo root, a `config/` dir, a `logs/` dir. It walks the tree and recognizes files **by content, not by directory layout**, so no particular folder structure is required. If it finds nothing it recognizes, the section stays off: no nav link, no routes.
+
+- `/evals` -- overview: category/subcategory counts, top asserted tools, orphan count, and the most recent run directories
+- `/evals/specs` -- search and filter every spec by category, store, mode, tool, criterion, assertion type, or orphan status. Each row shows a one-line headline plus a fact strip of what the spec actually enforces. Criterion text is searchable via the `include criteria text` toggle (off by default — it's the bulk of the corpus and mostly boilerplate)
+- `/evals/specs/{path}` -- resolved stores, personas, shared criteria, inherited sidecar flags, the assertion table, and which manifests reference this spec
+- `/evals/manifests` -- near-identical manifests grouped into clusters: the shared case set once, then only the fields that differ between members. Beats diffing dozens of near-identical files by hand. `?view=flat` lists them individually
+
+Run directories are listed newest-first and are **never parsed until you ask** — hit `load` on a row to pull one into the trace viewer. That keeps pointing at a repo root with gigabytes of logs instant.
+
+Settings live in `~/.config/logfire-viewer/config.json` (`evals_dir`, `evals_max_depth`, `evals_max_rundirs`, `evals_skip_dirs`), written by `logfire-viewer init`. Precedence is **flag > `$LFV_EVALS_*` env > config file > default**. The skip list has sane defaults (`node_modules`, `.venv`, `.git`, build/cache dirs) and deliberately does *not* include `logs`.
 
 Full agent guide: [docs/using-logfire-viewer/SKILL.md](docs/using-logfire-viewer/SKILL.md)

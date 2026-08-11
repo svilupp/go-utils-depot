@@ -30,7 +30,7 @@ export PATH="$HOME/.local/bin:$PATH"
 | [linear](linear/) | Linear API CLI for tickets and comments | `eget svilupp/go-utils-depot --tag 'linear/'` |
 | [wipd](wipd/) | Per-folder task tracker for AI agents | `eget svilupp/go-utils-depot --tag 'wipd/'` |
 | [logfire-trace](logfire-trace/) | Logfire trace downloader, viewer, and AI conversation replayer | `eget svilupp/go-utils-depot --tag 'logfire-trace/'` |
-| [logfire-viewer](logfire-viewer/) | Local web dashboard for AI conversation traces with multi-source fusion | `eget svilupp/go-utils-depot --tag 'logfire-viewer/'` |
+| [logfire-viewer](logfire-viewer/) | Local web dashboard for AI conversation traces with multi-source fusion, plus an eval scenario/manifest config explorer | `eget svilupp/go-utils-depot --tag 'logfire-viewer/'` |
 | [newrelicexplorer](newrelicexplorer/) | New Relic logs & errors CLI (NRQL/NerdGraph, EU) | `eget svilupp/go-utils-depot --tag 'newrelicexplorer/'` |
 | [sentryexplorer](sentryexplorer/) | Sentry issues & errors CLI (curated projects) | `eget svilupp/go-utils-depot --tag 'sentryexplorer/'` |
 | [openrouterexplorer](openrouterexplorer/) | OpenRouter catalog, pricing & policy-routed chat CLI | `eget svilupp/go-utils-depot --tag 'openrouterexplorer/'` |
