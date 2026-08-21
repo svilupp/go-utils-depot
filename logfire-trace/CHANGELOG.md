@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Keep it brief!
 
+## [0.16.2] - 2026-08-21
+
+### Fixed
+- Replay no longer sends AI-SDK `reasoning` content parts verbatim to Anthropic, which caused HTTP 400 (`Input tag 'reasoning'...`). Signed reasoning parts (with an Anthropic provider signature) become `thinking` blocks; unsigned ones are stripped. Google gets the same stripping. Messages left with no content after stripping are omitted entirely, for Anthropic, Google, and OpenAI.
+
 ## [0.16.1] - 2026-07-25
 Docs-only release, no behavior changes.
 - Fixed stale docs: `--since` (now `min_timestamp`, no SQL rewriting), `--dry-run --json | jq`, trace-ID shortcut accepts flags; deprecated flags consolidated into one README appendix.
