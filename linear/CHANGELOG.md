@@ -6,6 +6,90 @@ The format is based on Keep a Changelog, adapted for this repository.
 
 ## [Unreleased]
 
+### Fixed
+
+
+## [0.15.0] - 2026-08-24
+
+### Added
+
+- `linear relate <identifier>` creates or removes a Linear `issueRelation` via
+  `--blocks`/`--blocked-by`/`--related`/`--duplicate-of` (mutually exclusive,
+  exactly one required) or `--remove <relation-id>`. `--blocked-by` is
+  normalized to Linear's native `blocks` type with the two issues swapped
+  (Linear has no `blocked_by` relation type). Workspace-guarded, supports
+  `--dry-run --json` like other mutations.
+- `linear relations <identifier>` lists an issue's relations, merging
+  `issue.relations` (outward) and `issue.inverseRelations` (inward) into one
+  direction-tagged list (`blocks`, `blocked by`, `related to`, `duplicate of`,
+  `has duplicate`); read-only, supports `--json`.
+- `internal/client`: `LinearClient.ListIssueRelations`,
+  `CreateIssueRelation`, and `DeleteIssueRelation`, backing the new commands.
+
+## [0.14.0] - 2026-08-19
+
+### Added
+
+- `--estimate <points>` on `linear create` and `linear update` sets the issue's point estimate.
+- `--team <key|name|uuid>` on `linear create` and `linear update` overrides the active profile's team; `--state` names resolve against the chosen team.
+- `linear teams list` — read-only; lists all visible teams (id, key, name). Supports `--json`.
+- `linear projects list` — read-only; lists projects (id, name, state, team keys). Optional `--team` filter. Supports `--json`.
+- `linear labels list` — read-only; lists workspace and team-scoped labels. Optional `--team` filter. Supports `--json`.
+- `linear users list` — read-only; lists workspace users (id, name, displayName, email); `--all` includes deactivated users. Supports `--json`.
+- `linear project create <name>` — creates a new project; `--team` (required, repeatable), `--description`, and `--lead <name|email|uuid|me>` optional. Supports `--dry-run` and `--json`.
+
+### Fixed
+- Default Triage state now resolves per-team when `--team` overrides without `--state`; foreign-team state UUID no longer sent.
+
+
+## [0.13.0] - 2026-08-18
+
+### Added
+
+- Local invocation audit log at `~/.config/linear/audit.log` (JSONL, one
+  line per invocation with profile, sanitized argv, request count, and
+  rate-limit headers; 10MB rotation, secrets redacted). Disable with
+  `LINEAR_NO_AUDIT=1`.
+
+## [0.12.0] - 2026-08-15
+
+### Changed
+
+- `linear update --label`/`--remove-label` now disambiguate a label name that
+  exists in multiple teams by preferring the issue's team label (falling back
+  to the configured profile team), then a workspace-level label, before
+  erroring as ambiguous.
+
+## [0.11.0] - 2026-08-14
+
+### Added
+
+- `linear issues list --updated-before <RFC3339>` composes an inclusive
+  `updatedAt` upper bound with the existing exclusive `--updated-since`
+  filter. Issue connections now explicitly order by `updatedAt`, allowing a
+  caller to freeze and durably resume a cursor-paginated polling window.
+- `linear update <issue> --remove-label <name-or-uuid>` (repeatable) removes
+  selected labels by computing the final label set and sending one
+  `issueUpdate` mutation. It can be combined with `--label` (removals apply
+  first, additions win), remains workspace-guarded, and supports the existing
+  `--dry-run` and `--json` output modes without a destructive clear/reapply
+  window.
+
+## [0.10.1] - 2026-08-12
+
+### Fixed
+
+- `--state` resolution (`create`/`update`) failed to find a state name that
+  existed on a team beyond the workspace's first 50 workflow states (e.g.
+  `In Review` on a team encountered after paging), because the query was
+  unfiltered and unpaginated. Now filters `workflowStates` server-side by
+  team and paginates fully when no team filter applies.
+- `--label` resolution failed to find a label name that existed beyond the
+  workspace's first 50 issue labels (e.g. `dance2:done`), because
+  `issueLabels` was queried unpaginated. This also meant
+  `--create-missing-labels` could create a duplicate label for a name that
+  already existed on a later page. `issueLabels` is now paginated fully.
+
 ## [0.10.0] - 2026-08-03
 
 ### Added
