@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Keep it brief!
 
+## [0.17.0] - 2026-08-31
+
+### Changed
+- `get` now emits JSON by default, always saves the fetched capture under
+  `./logs/` (or `output_dir`), and reports the exact path on stderr. Use
+  `--human` for terminal summaries/trees; `--output` and `--output-dir` choose
+  where the reusable JSON is stored. `--stdout` remains a deprecated alias
+  and no longer disables saving.
+- Live replay attempts now save one receipt per provider attempt under
+  `./logs/replay/` (or `replay_output_dir`). Replay `--output-dir` and
+  `LFT_OUTPUT_DIR` override that location. Inspection and dry-run remain
+  side-effect free.
+- `query`, `profiles`, replay candidate/turn/inspection reports, and dry-runs
+  now emit JSON by default; use `--human` for width-aware terminal output.
+- Removed Quarto/HTML report generation. Use saved JSON with jq, replay
+  inspection, or `logfire-viewer`.
+
+### Breaking
+- Scripts that expected `get --stdout` to avoid filesystem writes must use a
+  local cleanup directory or redirect the saved path via `--output-dir`.
+- `--html` and `--open` are removed; export a human view with
+  `--human > report.txt` or open the JSON in `logfire-viewer`.
+- Replay receipts are now written automatically; set `replay_output_dir`,
+  replay `--output-dir`, or `LFT_OUTPUT_DIR` when the default `logs/replay/`
+  location is unsuitable.
+
 ## [0.16.2] - 2026-08-21
 
 ### Fixed

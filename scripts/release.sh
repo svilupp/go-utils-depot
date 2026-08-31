@@ -2,8 +2,10 @@
 set -euo pipefail
 
 # Usage:
-#   release.sh <tool> <version>               # source dir resolved via TOOL_SOURCES, else derived
+#   release.sh <tool> <version>               # source dir resolved via registry, else derived
 #   release.sh <source-dir> <tool> <version>  # explicit source path (always wins)
+#
+# Set RELEASE_DRAFT=1 to upload a draft for verification before publication.
 #
 # Examples:
 #   ./scripts/release.sh newrelicexplorer v0.1.0
@@ -20,21 +22,10 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 # (..), then into go-training-range.
 MONOREPO_ROOT="${SCRIPT_DIR}/../../go-training-range"
 
-# Tool -> source-directory registry. The 2-arg form consults this map first.
-# Add new tools here as "${MONOREPO_ROOT}/<tool>" (paths stay relative-anchored,
-# not absolute). Registry paths are resolved to clean absolute paths at runtime.
-# Tools not listed fall back to the legacy derivation (a sibling repo directory
-# next to go-utils-depot).
-declare -A TOOL_SOURCES=(
-  [newrelicexplorer]="${MONOREPO_ROOT}/newrelicexplorer"
-  [sentryexplorer]="${MONOREPO_ROOT}/sentryexplorer"
-  [openrouterexplorer]="${MONOREPO_ROOT}/openrouterexplorer"
-  [linear]="${MONOREPO_ROOT}/linear"
-  [logfire-trace]="${MONOREPO_ROOT}/logfire-trace"
-  [logfire-viewer]="${MONOREPO_ROOT}/logfire-viewer"
-  [agent-playbooks]="${MONOREPO_ROOT}/agent-playbooks"
-  [slack]="${MONOREPO_ROOT}/slack"
-  [argocdexplorer]="${MONOREPO_ROOT}/argocdexplorer"
+# Registry uses indexed arrays so the script also works with macOS Bash 3.2.
+REGISTERED_TOOLS=(
+  newrelicexplorer sentryexplorer openrouterexplorer linear logfire-trace
+  logfire-viewer agent-playbooks slack argocdexplorer
 )
 
 TOOL="${1:?Usage: release.sh <tool> <version>  OR  release.sh <source-dir> <tool> <version>}"
@@ -42,7 +33,7 @@ VERSION="${2:?Usage: release.sh <tool> <version>  OR  release.sh <source-dir> <t
 SOURCE_DIR=""
 
 # If 3 args: release.sh <source-dir> <tool> <version>
-# If 2 args: release.sh <tool> <version> (source-dir from TOOL_SOURCES, else derived)
+# If 2 args: release.sh <tool> <version> (source-dir from registry, else derived)
 if [ $# -eq 3 ]; then
   SOURCE_DIR="$(cd "$1" && pwd)"
   TOOL="$2"
@@ -50,16 +41,19 @@ if [ $# -eq 3 ]; then
 elif [ $# -eq 2 ]; then
   TOOL="$1"
   VERSION="$2"
-  if [ -n "${TOOL_SOURCES[$TOOL]:-}" ]; then
-    # Registered tool: resolve its (relative-anchored) source path to a clean
-    # absolute path so downstream `go build -C` is robust regardless of cwd.
-    REGISTERED="${TOOL_SOURCES[$TOOL]}"
+  REGISTERED=""
+  for CANDIDATE in "${REGISTERED_TOOLS[@]}"; do
+    if [ "$CANDIDATE" = "$TOOL" ]; then
+      REGISTERED="${MONOREPO_ROOT}/${TOOL}"
+      break
+    fi
+  done
+  if [ -n "$REGISTERED" ]; then
     SOURCE_DIR="$(cd "$REGISTERED" 2>/dev/null && pwd)" || {
       echo "Error: registered source directory for '${TOOL}' not found: ${REGISTERED}" >&2
       exit 1
     }
   else
-    # Unknown tool: fall back to a sibling repo directory next to go-utils-depot.
     SOURCE_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)/${TOOL}"
   fi
 fi
@@ -74,7 +68,7 @@ if [ ! -d "$SOURCE_DIR" ]; then
   echo "                                            # else ../<tool>/ next to this repo"
   echo "  release.sh <source-dir> <tool> <version>  # explicit source path (always wins)"
   echo ""
-  echo "Registered tools (TOOL_SOURCES): ${!TOOL_SOURCES[*]}"
+  echo "Registered tools: ${REGISTERED_TOOLS[*]}"
   echo "Example: release.sh newrelicexplorer v0.1.0"
   exit 1
 fi
@@ -144,11 +138,20 @@ echo ""
 echo "Creating release ${TAG}..."
 cd "$DEPOT_ROOT"
 
-gh release create "$TAG" "$DIST"/* \
+RELEASE_ARGS=()
+if [ "${RELEASE_DRAFT:-0}" = "1" ]; then
+  RELEASE_ARGS+=(--draft)
+fi
+
+gh release create "$TAG" "$DIST"/* ${RELEASE_ARGS[@]+"${RELEASE_ARGS[@]}"} \
   --repo svilupp/go-utils-depot \
   --title "${TOOL} ${VERSION}" \
   --notes "Release ${TOOL} ${VERSION}"
 
 echo ""
-echo "Done! Install with:"
+if [ "${RELEASE_DRAFT:-0}" = "1" ]; then
+  echo "Draft uploaded. Verify its assets, then publish with gh release edit --draft=false."
+else
+  echo "Done! Install with:"
+fi
 echo "  eget svilupp/go-utils-depot --tag '${TOOL}/' --to ~/.local/bin"

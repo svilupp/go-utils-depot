@@ -1,6 +1,6 @@
 ---
 name: using-logfire-viewer
-description: Visual companion to `logfire-trace` (lft). Use the logfire-viewer CLI and HTTP API (alias `lfv`) to browse and fuse AI conversation traces produced by the internal agent-testing harness, by exported Firestore chat documents, or by raw Logfire trace JSON. Push traces from a running agent, drive `lft` fetch/replay as background jobs, and deep-link the user to a specific run, scenario, or conversation. With `--evals <dir>` it also browses eval *definitions* — scenario and manifest TOMLs discovered by content anywhere under a folder — so you can search what an eval tests and which manifests reference it. Use when the user mentions `logfire-viewer`, `lfv`, agent-testing harness logs, eval scenarios or manifests, or wants to visually inspect anything `lft` can fetch.
+description: Visual companion to `logfire-trace` (lft). Use the logfire-viewer CLI and HTTP API (alias `lfv`) to browse and fuse AI conversation traces produced by an agent-testing harness, by exported Firestore chat documents, or by raw Logfire trace JSON. Push traces from a running agent, drive `lft` fetch/replay as background jobs, and deep-link the user to a specific run, scenario, or conversation. Use when the user mentions `logfire-viewer`, `lfv`, agent-testing harness logs, or wants to visually inspect anything `lft` can fetch.
 ---
 
 # Using logfire-viewer
@@ -14,7 +14,7 @@ serves a local dashboard plus a JSON/SSE API for agents. Default bind:
 ## What it ingests
 
 - **Agent-testing harness output**: the run directories under
-  `tools/agents-testing/logs/<timestamp>/`
+  `runs/<run_id>/`
   (`summary.json` + `conversations/` + `replay_traces/`).
 - **Firestore chat exports**: single `ai-chat` documents.
 - **Logfire trace JSON**: anything `lft get` writes, plus flat span
@@ -24,6 +24,11 @@ serves a local dashboard plus a JSON/SSE API for agents. Default bind:
 
 ConvKey fusion means a Logfire trace and a Firestore chat for the same
 conversation appear merged in the dashboard.
+
+Replay receipts from `lft replay` are saved automatically under `./logs/replay/`
+(or configured `replay_output_dir`). Use replay `--output-dir` or
+`LFT_OUTPUT_DIR` to choose another receipt folder; inspection and dry-run modes
+do not create receipts.
 
 ## Naming rule
 
@@ -43,7 +48,7 @@ conversation appear merged in the dashboard.
 
 2. **Web dashboard** for human browsing:
    ```bash
-   lfv serve --open ./tools/agents-testing/logs/20260427_155416
+   lfv serve --open ./runs/example-run
    ```
 
 3. **HTTP API** for agents (the main path for skill users):
@@ -52,39 +57,6 @@ conversation appear merged in the dashboard.
    # block on the READY line on stdout, then hit the API
    curl -s http://127.0.0.1:18081/llms.txt
    ```
-
-## Eval configs (`--evals`)
-
-Everything above reads run *results*. `--evals <dir>` turns on a second,
-independent surface for eval *definitions* — the scenario and manifest
-TOMLs themselves:
-
-```bash
-lfv serve --quiet --evals ~/code/my-monorepo/tools &
-curl -s '127.0.0.1:18081/api/evals/specs?cat=basic&refs=orphan' | jq '.matched'
-curl -s '127.0.0.1:18081/api/evals/manifests'                   | jq '.clusters | length'
-```
-
-Key facts for an agent:
-
-- Files are recognized **by content, not by directory layout**. Point it
-  at a repo root, a `config/` dir, or a `logs/` dir. If nothing is
-  recognized, the section is disabled and every `/evals*` route 404s —
-  check for that before assuming an empty corpus is a query mistake.
-- A spec's identity is its **slash-separated path relative to the root,
-  without `.toml`** — not its `name` field, which repeats across the
-  corpus. That path is the URL segment and the JSON key.
-- Filters on `/api/evals/specs`: `q` (whitespace-AND terms, plus
-  `tool:` `store:` `cat:` `mode:` `crit:` `assert:` prefixes), and the
-  params `cat`, `sub`, `store`, `mode`, `tool`, `crit`, `assert`,
-  `refs=orphan|referenced`, `issues=1`, `deep=1`. Params win over `q`
-  prefixes. `deep` is off by default — it adds criterion descriptions,
-  which are most of the corpus text.
-- `POST /api/evals/reload` re-reads the catalog without a restart.
-  Enabling the section, though, requires `--evals` at startup.
-- Run directories are listed but **not parsed** until you ask. Load one
-  into the trace viewer with `POST /api/load?path=<abs>` — that is the
-  bridge from a spec to the runs that executed it.
 
 ## Discovering the API
 
@@ -120,14 +92,14 @@ lost on process restart.
 
 ### Fetch a Logfire trace through the viewer
 
-The viewer drives `lft` as a background subprocess. The result is
-auto-ingested on success.
+The viewer drives `lft` as a background subprocess. It passes an explicit
+output path and auto-ingests exactly that saved file on success.
 
 ```bash
 curl -X POST -H 'Content-Type: application/json' \
-  -d '{"trace_id":"019dcf6a71f36f47eb848d2da67b26f6"}' \
+  -d '{"trace_id":"<trace_id>"}' \
   http://127.0.0.1:18081/api/lft/fetch
-# returns {"job_id":"..."} with 202
+# returns {"job":{"id":"...", ...}} with 202; poll using .job.id
 
 curl -N http://127.0.0.1:18081/api/jobs/<id>/output   # SSE stream
 curl -s http://127.0.0.1:18081/api/jobs/<id>          # final state
@@ -154,8 +126,45 @@ Hand the user a stable URL rather than dumping JSON into the chat:
 - `/runs/{run_id}` for a run
 - `/runs/{run_id}/s/{scenario_name}` for a scenario verdict
 - `/runs/compare?a=<runA>&b=<runB>` for a side-by-side diff
-- `/replays/family/{prefix_sha}` for every sample sharing the same input (system + messages + tool definitions) across sessions
 - `/jobs/{job_id}` for live `lft` output
+
+## Reviewing replays
+
+Reach for this when iterating on a prompt, comparing models or providers,
+or exploring why a specific trace fails. Fetch once and use the saved JSON
+for repeated analysis. `lft get` defaults to `./logs/` (or configured
+`output_dir`) and prints its path on stderr. Use output flags for a
+case-specific folder; do not download the same remote trace again.
+
+Live replay receipts default to `./logs/replay/` (or configured
+`replay_output_dir`). Replay `--output-dir` and `LFT_OUTPUT_DIR` override that
+folder. Inspection and dry-run modes do not create receipts.
+
+Cluster mental model:
+
+- The folder you pass to `--output-dir` is the **session**. Receipts pile up
+  append-only; nothing coordinates between runs.
+- Receipts with the **same** `source_trace_id` + `input_sha` are noise
+  samples of one prompt/config. The viewer groups them.
+- Same `source_trace_id` + **different** `input_sha` is a variant. The
+  viewer shows them as siblings under the trace and lets you diff two.
+
+Minimum loop:
+
+```bash
+lft get <trace-id> --output-dir logs/investigation/ > /dev/null
+lft replay logs/investigation/trace_<id>.json        # repeat with varied flags
+logfire-viewer serve logs/replay/ --open
+```
+
+Then click `Replays`. The compare view (`/replays/compare?a=&b=`) diffs
+two clusters' rendered prompts side-by-side and cycles through the noise
+samples on each side with `Next sample`.
+
+Folder ingest works the same as any other source: drag the `.replays/`
+directory onto the navbar dropzone, or `POST /api/ingest` (multipart;
+optional `session=<label>` form field tags the upload). Watched paths
+auto-pick up new receipts; ad-hoc uploads are not watched.
 
 ## Pairing with `lft`
 
@@ -164,15 +173,15 @@ provider replay. `lfv` is the source of truth for visual inspection
 and cross-source fusion. Common pattern:
 
 ```bash
-# lft pulls a trace
-lft get 019dcf6a71f36f47eb848d2da67b26f6
+# Fetch once; lft saves under ./logs (or configured output_dir)
+lft get <trace_id> --output-dir logs/investigation/ > /dev/null
 # lfv visualises it (alongside any harness data already loaded)
-curl -X POST -F 'files=@logs/trace_019dcf6a71f36f47eb848d2da67b26f6.json' \
+curl -X POST -F 'files=@logs/investigation/trace_<trace_id>.json' \
   http://127.0.0.1:18081/api/ingest
 ```
 
-Or skip the manual step: `POST /api/lft/fetch {trace_id}` runs the
-`lft get` and ingest in one call.
+Or skip the manual step: `POST /api/lft/fetch {trace_id}` runs `lft get` with
+an explicit output path and ingests that saved file in one call.
 
 ## Best practices
 

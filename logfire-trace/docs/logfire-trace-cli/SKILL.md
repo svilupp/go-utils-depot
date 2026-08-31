@@ -20,10 +20,11 @@ logfire-trace get <trace_id>
 logfire-trace get -c <chat_id>
 logfire-trace get -u <email>
 logfire-trace query -S 30d "<sql>"
+logfire-trace profiles
 logfire-trace replay <source> --inspect
 ```
 
-- `get`: download traces or chats and render summaries or trees
+- `get`: download traces or chats, save JSON, and optionally render summaries or trees
 - `query`: discover trace IDs, chat IDs, and conversation links
 - `replay`: rebuild a recorded provider request safely
 - `check`: validate config and API access
@@ -35,17 +36,25 @@ Copy this checklist:
 
 Fetch workflow:
 - [ ] Start from a trace ID, chat ID, user email, or SQL query result
-- [ ] Use `get` to save the trace or chat locally
-- [ ] Use `get -s` or `get -t` before replay when you need context
+- [ ] Fetch once with `get`; keep the reported JSON path for repeated local analysis
+- [ ] Prefer `--output FILE` or `--output-dir DIR` for an investigation folder
+- [ ] Use `replay <saved-file> --inspect` / `--turns` without downloading again
 
 Examples:
 
 ```bash
-logfire-trace get 019b93fef58a772e9ce3b26b756ced88
-logfire-trace get -c YOlefE2UTuJ87F73ghLp
-logfire-trace get -s 019b93fef58a772e9ce3b26b756ced88
-logfire-trace get -t 019b93fef58a772e9ce3b26b756ced88
+logfire-trace get <trace_id> --output-dir logs/investigation/ > /dev/null
+logfire-trace get -c <chat_id> --output-dir logs/investigation/ > /dev/null
+logfire-trace replay logs/investigation/trace_<trace_id>.json --inspect | jq '{replayable, selected_span}'
+logfire-trace replay logs/investigation/trace_<trace_id>.json --turns --human
 ```
+
+`get` emits JSON on stdout and always saves a JSON capture. Replay inspection,
+turn reports, candidate lists, and dry-runs also emit JSON by default; pass
+`--human` for terminal text. Defaults are
+`./logs/trace_<id>.json` and `./logs/chat_<id>.json`; configure `output_dir`
+or override it with output flags. Saved paths are status messages on stderr,
+so machine pipelines remain valid.
 
 If `firestore.lookup_chats_collection` is configured, `get --chat`/`-c` may
 transparently fall back through that lookup collection: when the ID misses the
@@ -62,7 +71,7 @@ Copy this checklist:
 Replay workflow:
 - [ ] Prefer a trace file or trace ID when available
 - [ ] For chat-first replay, use `replay -c <chat_id>`
-- [ ] Run `--list-replay-spans`
+- [ ] Run `--list-replay-spans`; if there are multiple candidates, pass a stable `--span <span_id>` in subsequent commands
 - [ ] Run `--turns` or `--inspect`
 - [ ] Prefer canonical selectors from `--turns`
 - [ ] Use `--rewrite` for non-structural edits
@@ -74,20 +83,21 @@ logfire-trace replay trace.json --turns
 logfire-trace replay trace.json --respond-to turn:0.user
 logfire-trace replay trace.json --rewrite system -i prompt.txt --respond-to turn:1.tool:0
 logfire-trace replay trace.json --rewrite system -i prompt.txt --forward-from turn:0.tool:0 --through turn:1.tool:0
-logfire-trace replay -c YOlefE2UTuJ87F73ghLp --span 15 --inspect
+logfire-trace replay -c <chat_id> --span <span_id> --inspect
 ```
 
 ## Best Practices
 
 1. Use `logfire-trace` in generated docs and examples; mention `lft` only as an alias.
 2. Use `-c` for replay chat IDs to stay aligned with `get -c`.
-3. Do not replay Firestore chat JSON documents directly.
+3. Replay saved trace or chat JSON locally whenever possible; do not fetch the
+   same remote source repeatedly.
 4. Treat `--position` as legacy syntax; prefer explicit replay actions.
 5. Treat `user:N`, `assistant:N`, `tool:N`, and `msg:N` as compatibility aliases; prefer `turn:N.*` selectors.
 6. Validate the replay boundary with `--inspect` or `--dry-run` before live provider calls.
 7. If `--inspect` warns that earlier assistant replies are preserved after a rewrite, switch to `--forward-from`.
 8. Expect `--turns` to mark synthetic session-start messages and unwrap common `<user_input>` wrappers so you can pick the real shopper turn faster.
-9. For `--forward-from ... --dry-run`, read `inspection.forward_steps` and `steps`; dry-run validates the sequence but does not emit per-step replay results.
+9. For `--forward-from ... --dry-run`, read `preflight` and `would_call`; dry-run validates the sequence but does not emit per-step replay results.
 10. Treat `--no-thinking` as provider-specific; OpenAI `gpt-5.4` / `gpt-5.2` currently reject it whenever the rebuilt request still carries tool definitions.
 11. `-p` means `--profile` on `get`, `query`, and `check`. On `replay`, `-p` is the legacy `--position` shorthand — use the long `--profile` with replay to avoid clashing with it.
 12. If replay extraction looks wrong, or you hit "no adapter matched", try forcing `--format pydantic-ai` (or `--format ai-sdk`) — auto-detection can misfire on mixed-instrumentation traces.
@@ -98,9 +108,9 @@ logfire-trace replay -c YOlefE2UTuJ87F73ghLp --span 15 --inspect
 # Find candidate traces first
 logfire-trace query -S 30d "SELECT trace_id FROM records ORDER BY start_timestamp DESC"
 
-# Fetch then replay
-logfire-trace get <trace_id>
-logfire-trace replay logs/trace_<id>.json --inspect
+# Fetch once, then replay the saved artifact repeatedly
+logfire-trace get <trace_id> --output-dir logs/investigation/ > /dev/null
+logfire-trace replay logs/investigation/trace_<id>.json --inspect
 
 # Chat-first path
 logfire-trace replay -c <chat_id> --list-replay-spans

@@ -32,11 +32,21 @@ Replay workflow:
 
 ## Saving for Review
 
-When you replay anything you might want to look at again — prompt iteration, model comparison, noise sampling — pass `--output-dir <DIR>`. One append-only `lft.replay.receipt/v2` file is written per attempt as it completes; v1 remains readable. Same `input_sha` under one `source_trace_id` = noise samples; different `input_sha` = a variant. If you'll do this more than once in a session, `export LFT_OUTPUT_DIR=.replays/` once at the top.
+Fetch once and work from local JSON. `get` always saves a capture in
+`./logs/` (or configured `output_dir`) and prints the path on stderr. Prefer
+`--output FILE` / `--output-dir DIR` to choose a case folder, then reuse that
+file for every inspection and replay.
+
+Live replay attempts automatically write one append-only
+`lft.replay.receipt/v2` file per attempt under `./logs/replay/` (or configured
+`replay_output_dir`). Pass replay `--output-dir <DIR>` or set `LFT_OUTPUT_DIR`
+to override the receipt folder. Inspection and dry-run commands do not create
+receipts. v1 remains readable. Same `input_sha` under one `source_trace_id` =
+noise samples; different `input_sha` = a variant.
 
 ```bash
-logfire-trace replay trace.json --output-dir .replays/
-jq -r '.input_sha + " " + .input.model' .replays/*.json | sort | uniq -c
+logfire-trace replay trace.json
+jq -r '.input_sha + " " + .input.model' logs/replay/*.json | sort | uniq -c
 ```
 
 ## Source Forms
@@ -85,7 +95,7 @@ Pick a recipe trace whose model, tools, and system prompt match the chat's inten
 
 If the chat contains tool calls but no tool definitions reach the resolver (no recipe, no `--tools-file`), replay errors out with the called tool names and remediation hints. Resolve by passing `--recipe`, `--tools-file`, or `--skip-tools`.
 
-## New Replay Flags (0.10.0)
+## Replay Flags
 
 | Flag | Purpose |
 |---|---|
@@ -96,17 +106,21 @@ If the chat contains tool calls but no tool definitions reach the resolver (no r
 | `--reasoning-effort low|medium|high` | CLI-only; not stored in span data |
 | `--max-output-tokens <int>` | Override max output tokens |
 | `--skip-tools` | Run without tools; emits permanent stderr warning |
-| `--dry-run` | Print resolved `ReplayConfig` + provenance and exit |
-| `--dry-run --json` | Emit resolved config as JSON for tooling |
+| `--dry-run` | Emit resolved `ReplayConfig` + provenance as JSON and exit |
+| `--human` | Render inspection/results as terminal text; JSON remains the default |
+| `--json` | Deprecated explicit-JSON alias for the default machine output |
 
 ## Dry-Run Validation
 
 ```bash
-logfire-trace replay logs/chat.json --recipe 019aabbccdd... --dry-run
-logfire-trace replay logs/chat.json --recipe 019aabbccdd... --dry-run --json | jq .
+logfire-trace replay logs/chat.json --recipe 019aabbccdd... --dry-run | jq '.preflight'
+logfire-trace replay logs/chat.json --recipe 019aabbccdd... --dry-run --human
 ```
 
-`--dry-run` shows where each field came from (chat, recipe, flag, sibling span) so you can confirm the layered resolution before sending. As of 0.10.0, trace `--dry-run` prints this provenance summary instead of the full `ReplayOutput` JSON; use `--dry-run --json` when tooling needs structured output.
+`--dry-run` emits JSON showing where each field came from (chat, recipe, flag, sibling span) so you can
+confirm the layered resolution before sending. Add `--human` for the readable provenance summary;
+`--json` remains a deprecated compatibility alias. Inspection modes never call a provider or create
+replay receipts.
 
 ## --skip-tools Fidelity Caveat
 
@@ -140,12 +154,12 @@ Targets:
 
 Follow this loop before any provider call:
 
-1. Run `--inspect`.
+1. Run `--inspect` (JSON by default; add `--human` for text).
 2. Confirm `replayable=true`.
-3. If needed, run `--dry-run --json | jq '.inspection'`.
+3. If needed, run `--dry-run | jq '.preflight'`.
 4. If the planner warns about contamination, use `--forward-from` instead of keeping stale later replies.
 5. If the request ends on `assistant`, switch to `--respond-to` or a safer target.
-6. For `--forward-from ... --dry-run`, inspect `inspection.forward_steps` and `steps`; dry-run validates the sequence but does not emit per-step replay `results`.
+6. For `--forward-from ... --dry-run`, inspect `preflight` and `would_call`; dry-run validates the sequence but does not emit per-step replay `results`.
 7. Treat `--no-thinking` as provider-specific: Anthropic works, Gemini 3 is best-effort, Gemini 2.5 Pro is unsupported, and OpenAI `gpt-5.4` / `gpt-5.2` currently cannot use it when the rebuilt request still carries tool definitions.
 8. If extraction looks wrong, or you get "no adapter matched", try forcing `--format pydantic-ai` (or `--format ai-sdk`) — auto-detection can misfire on mixed-instrumentation traces.
 
@@ -155,10 +169,12 @@ If the trace contains multiple generation spans:
 
 ```bash
 logfire-trace replay <source> --list-replay-spans
-logfire-trace replay <source> --span 3 --inspect
+logfire-trace replay <source> --span <span_id> --inspect
 ```
 
-The default selector prefers:
+When more than one candidate is present, pass a stable `--span <span_id>` from
+the candidate list. Numeric indices require `--allow-ambiguous-span` and are
+intended only for debugging. Candidate ranking prefers:
 
 1. non-guardrail / non-classifier spans
 2. more prompt messages
@@ -170,7 +186,7 @@ The default selector prefers:
 1. Legacy `-p user:N` removes the target user turn and leaves the request ending on `assistant`.
 2. The trace contains both main-agent and guardrail/classifier generations, so the wrong span gets selected.
 3. The rebuilt request ends on `assistant` or has no request messages.
-4. A chat document file is used as replay input instead of a trace source.
+4. A chat document lacks model/tool settings; supply a local `--recipe` trace or explicit overrides.
 5. A prompt rewrite is tested against a later turn while earlier assistant replies still encode the old behavior.
 6. Replay does **not** reflect tool-side code changes — it re-sends the recorded tool responses verbatim. Only prompt, model, and message changes are testable via replay; if the tool implementation changed, the replayed tool output is stale.
 

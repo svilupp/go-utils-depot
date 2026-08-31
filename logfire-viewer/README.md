@@ -11,7 +11,7 @@ You have AI agent traces — Logfire JSON, Firestore chat exports, Perseus run d
 - `lfv dump ./runs` -- emit a fused JSON snapshot to stdout
 - `lfv list ./runs --json` -- one row per detected file
 - `lfv saved add <file> --note "..."` -- push traces into the saved-items inbox at `/saved`
-- `lfv serve .replays/` -- ingest redacted `lft.replay.receipt/v2` attempt receipts (v1 remains readable); auto-clusters at `/replays`
+- `lfv serve logs/replay/` -- ingest redacted `lft.replay.receipt/v2` attempt receipts (v1 remains readable); auto-clusters at `/replays`
 - `lfv serve --evals <dir>` -- browse eval *definitions* (scenario + manifest TOMLs) at `/evals`; see [Eval configs](#eval-configs)
 - Drop traces or whole folders onto the navbar dropzone, or `POST /api/ingest`
 - `Jobs` tab runs `lft get` / `lft replay` as background subprocesses with live SSE output
@@ -29,10 +29,10 @@ logfire-viewer init
 
 ```bash
 # Serve a directory of traces (no watching)
-logfire-viewer serve testdata/raw
+logfire-viewer serve ./logs
 
 # Watch + auto-open the browser
-logfire-viewer serve --open --watch ./tools/agents-testing/logs/20260427_155416
+logfire-viewer serve --open --watch ./runs/example-run
 
 # Headless: pipe stdout, block on READY, then hit the API
 logfire-viewer serve --quiet ./runs &
@@ -63,10 +63,17 @@ Detected automatically:
 - **Logfire trace** -- flat span arrays from `lft get <id>` or `replay_traces/*.json`
 - **Firestore chat** -- exported `ai-chat` documents
 - **Perseus scenario / summary / run directory** -- `{run}/summary.json` plus `{run}/conversations/*.json`
-- **Replay session directory** -- a folder of `lft.replay.receipt/v1` files from `lft replay --output-dir <DIR>`; auto-clustered by `source_trace_id` × `input_sha`
+- **Replay session directory** -- a folder of `lft.replay.receipt/v2` files (v1 remains readable) from `lft replay`; auto-clustered by `source_trace_id` × `input_sha`
 - **Generic messages** -- plain `[{role, content}, ...]` arrays
 
 Files larger than 50MB are skipped.
+
+## Fetch jobs in 0.5.0
+
+Viewer fetches pass an explicit JSON output path to `logfire-trace` and ingest
+exactly that file, even when linked captures are also saved. Missing, malformed,
+or unusable output makes the job fail with an `error` in the job API and detail
+page. The viewer does not parse JSON from subprocess stdout.
 
 ## HTTP API
 
@@ -82,7 +89,7 @@ Files larger than 50MB are skipped.
 | `POST /api/reload`             | Re-scan the watched paths                        |
 | `POST /api/load?path=<dir>`    | Add a new directory to the watched set           |
 | `POST /api/ingest`             | Ad-hoc upload (multipart or JSON), not watched   |
-| `POST /api/lft/fetch`          | Spawn `lft get` and ingest the result            |
+| `POST /api/lft/fetch`          | Spawn `lft get --output <known-path>` and ingest that file            |
 | `POST /api/lft/replay`         | Spawn `lft replay`                               |
 | `GET /api/jobs`                | Background lft jobs (newest first)               |
 | `GET /api/jobs/{id}`           | Single job + buffered stdout/stderr              |
@@ -140,16 +147,20 @@ The CLI auto-discovers a running `logfire-viewer serve` via `~/.config/logfire-v
 
 ## Replay sessions
 
-Pair with `lft replay --output-dir <DIR>` (or the legacy `-O <DIR>` / `LFT_OUT`) to compare prompt iterations:
+Pair with `logfire-trace 0.17.0` or newer. Live replay writes receipts automatically
+to `logs/replay/` (config: `replay_output_dir`); replay `--output-dir` and
+`LFT_OUTPUT_DIR` override that folder. Inspection and dry-run do not create receipts.
 
 ```bash
-# Generate a few receipts varying flags
-lft replay trace.json --output-dir .replays/
-lft replay trace.json --output-dir .replays/ --temperature 0.7
-lft replay trace.json --output-dir .replays/ --model claude-opus-4-7
+# Fetch once; reuse the saved trace for inspection and replay
+logfire-trace get <trace_id> --all --output-dir logs/investigation/ > /dev/null
+logfire-trace replay logs/investigation/trace_<id>.json --inspect
 
-# Browse them
-logfire-viewer serve .replays/ --open
+# Live replay calls a provider and may incur charges
+logfire-trace replay logs/investigation/trace_<id>.json
+
+# Browse the automatically saved receipts
+logfire-viewer serve logs/replay/ --open
 ```
 
 `/replays` clusters receipts by `source_trace_id` × `input_sha`. Same `input_sha` = noise samples; different `input_sha` under the same trace = a variant. Use the side-by-side compare view to diff two clusters.

@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Keep it brief!
 
+## [0.5.0] - 2026-08-31
+
+Coordinated with `logfire-trace 0.17.0`.
+
+### Changed
+
+- Viewer initiated fetches now pass `lft get --output <known-path>` and ingest
+  that exact JSON file, avoiding newest-file guessing when linked captures are
+  also written. Missing, unreadable, malformed, or otherwise unusable output now
+  marks the job failed and exposes the error in the API and job detail view.
+- Documentation now follows lft's save-first workflow: captures live in
+  `logs/`, replay receipts in `logs/replay/`, and repeated analysis uses local
+  files.
+
 ## 0.4.1 — 2026-08-26
 
 - Scenario detail header now shows the conversation ID (`conv <id>`) with a copy button.
