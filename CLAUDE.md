@@ -34,11 +34,10 @@ Binaries are cross-compiled locally and uploaded via `gh`:
 ./scripts/release.sh ../path-to-source/logfire-trace logfire-trace v0.6.0
 ```
 
-Builds static binaries for all 5 platforms, packages them, generates checksums, and creates a GitHub release tagged `<tool>/<version>`.
+Builds static binaries for each tool's supported platforms, packages them, generates checksums, and creates a GitHub release tagged `<tool>/<version>`. `lightdashctl` and `dbexplorer` currently ship macOS and Linux binaries only because their source modules use Unix file locking.
 
 Requires `go` and `gh` (authenticated to the svilupp account).
 
 ## Important
 
 This is a public repo. Never commit source code, secrets, or internal references. Only docs, changelogs, and release artifacts.
-

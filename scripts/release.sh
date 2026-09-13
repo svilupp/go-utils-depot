@@ -22,10 +22,12 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 # (..), then into go-training-range.
 MONOREPO_ROOT="${SCRIPT_DIR}/../../go-training-range"
 
-# Registry uses indexed arrays so the script also works with macOS Bash 3.2.
+# Registered tools use source directories under go-training-range. Keep this
+# as an indexed array so the script works with macOS Bash 3.2.
 REGISTERED_TOOLS=(
   newrelicexplorer sentryexplorer openrouterexplorer linear logfire-trace
   logfire-viewer agent-playbooks slack argocdexplorer
+  lightdashctl dbexplorer firestoreexplorer agenticforge
 )
 
 TOOL="${1:?Usage: release.sh <tool> <version>  OR  release.sh <source-dir> <tool> <version>}"
@@ -49,6 +51,8 @@ elif [ $# -eq 2 ]; then
     fi
   done
   if [ -n "$REGISTERED" ]; then
+    # Resolve the registered source path to a clean absolute path so downstream
+    # `go build -C` works from any working directory.
     SOURCE_DIR="$(cd "$REGISTERED" 2>/dev/null && pwd)" || {
       echo "Error: registered source directory for '${TOOL}' not found: ${REGISTERED}" >&2
       exit 1
@@ -64,7 +68,7 @@ if [ ! -d "$SOURCE_DIR" ]; then
   echo "Error: source directory not found: $SOURCE_DIR"
   echo ""
   echo "Usage:"
-  echo "  release.sh <tool> <version>               # source dir from TOOL_SOURCES registry,"
+  echo "  release.sh <tool> <version>               # source dir from registry,"
   echo "                                            # else ../<tool>/ next to this repo"
   echo "  release.sh <source-dir> <tool> <version>  # explicit source path (always wins)"
   echo ""
@@ -93,6 +97,18 @@ PLATFORMS=(
   "darwin/arm64"
   "windows/amd64"
 )
+
+# lightdashctl's bundle lock and dbexplorer's activity log use Unix file
+# locking. Keep both releases usable on supported targets until the source
+# modules add Windows implementations.
+if [ "$TOOL" = "lightdashctl" ] || [ "$TOOL" = "dbexplorer" ]; then
+  PLATFORMS=(
+    "linux/amd64"
+    "linux/arm64"
+    "darwin/amd64"
+    "darwin/arm64"
+  )
+fi
 
 echo "Building ${TOOL} ${VERSION} (commit ${COMMIT}) from ${SOURCE_DIR}"
 echo ""
@@ -154,4 +170,4 @@ if [ "${RELEASE_DRAFT:-0}" = "1" ]; then
 else
   echo "Done! Install with:"
 fi
-echo "  eget svilupp/go-utils-depot --tag '${TOOL}/' --to ~/.local/bin"
+echo "  eget svilupp/go-utils-depot --tag '${TAG}' --to ~/.local/bin"
