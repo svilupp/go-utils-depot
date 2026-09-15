@@ -9,7 +9,7 @@ A simple CLI for working with Linear tickets and comments — built for humans a
 ## Install
 
 ```bash
-eget svilupp/go-utils-depot --tag 'linear/' --to ~/.local/bin
+eget svilupp/go-utils-depot --tag 'linear/v0.16.0' --to ~/.local/bin
 ```
 
 ## Quick start
@@ -30,26 +30,26 @@ It also generates a private `agent_marker` for automatic agent provenance.
 | `get`          | Fetch a ticket; `--json` or `--field <path>` for scripts                                       |
 | `create`       | New ticket; supports `--parent`, `--label`, `--project`                                        |
 | `update`       | Edit ticket fields (state, priority, assignee, labels, parent)                                 |
-| `issues list`  | List issues; `--label` (repeatable, AND), `--label-prefix` (repeatable, prefix match), `--state`, `--assignee`, `--limit`, `--cursor`, `--json` |
+| `issues list`  | List issues; labels/state (or `--state-not`)/assignee/`--team`, created/updated-time windows, cursor pagination, JSON |
 | `comment`      | Manage comments: `list`, `get`, `edit`, `delete`, `upsert`, or post inline                     |
 | `favorite`     | `add` / `remove` / `list` the viewer's favorited issues                                        |
+| `relate`       | Create (`--blocks`/`--blocked-by`/`--related`/`--duplicate-of`) or `--remove` an issue relation |
+| `relations`    | List an issue's relations (blocks, blocked by, related, duplicate); `--json`                   |
 | `me`           | Print the authenticated viewer (id, email, name, organization); `--json`                       |
 | `profile`      | `list` / `show` configured profiles                                                            |
-
-`create` and `update` accept `--create-missing-labels`: any `--label` value
-that doesn't already exist in the workspace is created instead of failing
-with "label not found" (workspace-guarded; `--dry-run` reports the names that
-would be created without creating them).
-
-`favorite add`/`favorite remove <identifier>` are idempotent and
-workspace-guarded (no-op if already/not favorited); `favorite list` is
-read-only and viewer-scoped — there is no `--user` flag.
 
 `comment list` also accepts `--since <RFC3339>` (server-side time filter) and
 `--exclude-user <uuid>` (repeatable, client-side). `comment upsert <issue>` is
 an atomic find-or-create matched by `--marker` prefix; the marker is
 auto-prepended to the body when missing so subsequent calls match and edit in
 place instead of duplicating.
+
+`relate <issue> --blocks <issue>` creates a Linear `issueRelation`;
+`--blocked-by` is normalized to the equivalent `blocks` relation with the
+two issues swapped (Linear has no native "blocked_by" type). Use
+`linear relations <issue>` to find a relation's id, then
+`linear relate <issue> --remove <relation-id>` to delete it. Both `relate`
+actions are workspace-guarded mutations and support `--dry-run --json`.
 
 Workspace profiles continue to work as before — `--profile`, `LINEAR_PROFILE`,
 and `default_profile` resolution is unchanged.
@@ -91,7 +91,11 @@ linear get AGI-123 --field parent.identifier
 
 # Create / update
 linear create "Bug: login broken" --parent AGI-123 --label bug
+linear create "Data pipeline spike" --team AGID --estimate 5
 linear update AGI-123 --state QA --priority 2 --assignee jan
+linear update AGI-123 --remove-label dance2:done
+linear update AGI-123 --estimate 3
+linear update AGI-123 --team AGID --state Triage   # state resolves against the new team
 
 # Comments
 linear comment AGI-123 "ack"                          # inline post
@@ -102,19 +106,29 @@ linear comment upsert SVI-15 --marker "## Workpad" --body-file workpad.md --json
 linear comment edit <comment-id> --body-file new.md
 linear comment delete <comment-id> --yes
 
+# Relations
+linear relate AGI-288 --blocks AGI-286
+linear relate AGI-286 --blocked-by AGI-288          # equivalent to the line above
+linear relate AGI-288 --duplicate-of AGI-290 --json
+linear relations AGI-288 --json
+linear relate AGI-288 --remove <relation-id>
+
 # Discovery
 linear issues list --label dance2:active --state Todo --json
-linear issues list --label-prefix dance2: --json
+linear issues list --updated-since 2026-05-24T10:00:00Z \
+  --updated-before 2026-05-24T11:00:00Z --limit 10 --json
 linear me --json
 
-# Favorites
-linear favorite add AGI-1840
-linear favorite remove AGI-1840 --json
-linear favorite list --json
+# Teams / projects / labels / users
+linear teams list --json
+linear projects list --team AGID --json
+linear labels list --team AGID --json
+linear users list --json
 
-# Create/update with auto-created labels
-linear create "Bug: login broken" --label new-label --create-missing-labels
-linear update AGI-123 --label new-label --create-missing-labels --dry-run
+# Projects
+linear project create "Q3 Search Revamp" --team AGID --lead me
+linear project create "Data pipeline" --team AGID --team "Agentic - Data Science" \
+  --description "Migrate ingestion" --dry-run --json
 ```
 
 `issues list --json` returns a paginated envelope:
@@ -124,13 +138,25 @@ linear update AGI-123 --label new-label --create-missing-labels --dry-run
   "issues": [
     {"id":"...","identifier":"SVI-42","title":"...",
      "state":{"name":"Todo","type":"unstarted"},
-     "labels":["dance2:active"],"url":"...","updatedAt":"..."}
+     "labels":["dance2:active"],"url":"...","updatedAt":"...",
+     "createdAt":"...","team":{"id":"...","key":"AGI","name":"Agentic"}}
   ],
   "cursor": null
 }
 ```
 
+`--state-not <name>` (repeatable) excludes workflow states server-side and is
+mutually exclusive with `--state`. `--team <key>` (repeatable) scopes to team
+key(s), overrides the profile's configured team, and is mutually exclusive with
+`--all-teams`. `--created-before` / `--created-after` filter by `createdAt`
+(RFC3339 or bare `YYYY-MM-DD`, UTC midnight); `--created-before` is exclusive,
+`--created-after` is inclusive.
+
 When `cursor` is non-null, pass it back via `--cursor <value>` for the next page.
+`--updated-since` is an exclusive `updatedAt` lower bound and
+`--updated-before` is an inclusive upper bound. Keep both unchanged while
+following a cursor; `issues list` explicitly orders the connection by
+`updatedAt`, making the page cursor resumable for a frozen polling window.
 
 Identifiers accept either form: `AGI-123` or the full Linear URL.
 
@@ -160,8 +186,9 @@ For pollers: branch on exit `9` (or `code == "UPSTREAM_UNAVAILABLE"`) for retrya
 
 ### Agent provenance
 
-The CLI detects Codex, Claude, and Pi from environment and process ancestry
-signals.
+The CLI detects Codex, Claude, and Pi from the same environment and Linux
+process ancestry signals as `agent-playbooks`. Next sets
+`LINEAR_CALLER=postak` explicitly.
 
 For detected agent calls:
 
@@ -169,6 +196,8 @@ For detected agent calls:
   active profile's `agent_marker`
 - comment list and get set `agentAuthored: true` only when that stamp matches
   the current body, then remove the stamp from command output
+- issue create and update record the exact returned `updatedAt` revision when
+  `POSTAK_STATE` is set
 
 Agents do not add a visible signature. Human edits invalidate an old stamp.
 Use `LINEAR_CALLER=human` for a human-intended command launched inside a coding
@@ -188,7 +217,7 @@ Env-var references (`${LINEAR_API_KEY}`) are expanded at load time, so the YAML 
 | Variable               | Purpose                                                                                                                       |
 | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
 | `LINEAR_PROFILE`       | Select active profile (overridden by `--profile`).                                                                            |
-| `LINEAR_CALLER`        | Provenance override: `auto`, `human`, `agent`, `codex`, `claude`, or `pi`. Default `auto`.                                     |
+| `LINEAR_CALLER`        | Provenance override: `auto`, `human`, `agent`, `postak`, `codex`, `claude`, or `pi`. Default `auto`.                          |
 | `LINEAR_API_KEY`       | API key for non-interactive `init`. Also referenced from YAML via `${LINEAR_API_KEY}`.                                        |
 | `LINEAR_TEAM_ID`       | Team UUID for non-interactive `init`.                                                                                         |
 | `LINEAR_HTTP_TIMEOUT`  | HTTP client timeout in Go duration form (e.g. `30s`, `1m`, `45s`). Default `30s`. Clamped to `[1s, 5m]`; out-of-range or unparseable values fall back to the default with a stderr warning. |

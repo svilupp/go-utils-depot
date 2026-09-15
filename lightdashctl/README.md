@@ -21,15 +21,22 @@ export LIGHTDASH_API_KEY=...
 lightdashctl config doctor
 lightdashctl discover search latency --kind dashboard
 lightdashctl discover get dashboard <REF>
-lightdashctl analyze query ./query.yml --compile-only
-lightdashctl build plan ./bundle
-lightdashctl build apply ./bundle
 ```
 
 `config init` writes `~/.config/lightdashctl/config.yaml`. Use
 `--config` or `LDC_CONFIG` to select another file. The CLI does not load
 `.env` files. Replace the generated example profile, aliases, and catalog path
 before using live content or local docs.
+
+## Query and bundles
+
+Provide a local query file or bundle directory before running these commands:
+
+```bash
+lightdashctl analyze query ./query.yml --compile-only
+lightdashctl build plan ./bundle
+lightdashctl build apply ./bundle
+```
 
 ## Commands
 

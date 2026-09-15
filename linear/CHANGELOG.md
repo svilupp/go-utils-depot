@@ -9,6 +9,27 @@ The format is based on Keep a Changelog, adapted for this repository.
 ### Fixed
 
 
+## [0.16.0] - 2026-09-15
+
+### Added
+
+- `issues list --state-not <name>` (repeatable) excludes workflow states via
+  `state.name.nin`; mutually exclusive with `--state`.
+- `issues list --team <key>` (repeatable) filters by team key(s) via
+  `team.key.in`, overriding the profile team; mutually exclusive with
+  `--all-teams`.
+- `issues list --created-before` / `--created-after` (RFC3339, or
+  `YYYY-MM-DD` as UTC midnight) filter on `createdAt` (`lt` / `gte`).
+- `issues list` JSON and text output now include `createdAt` and
+  `team {id, key, name}` per issue (additive; existing consumers
+  unaffected).
+
+### Fixed
+
+- `docs/using-linear-cli/SKILL.md` wrongly claimed `issues list` ignores
+  the active profile's team default; it applies it unless
+  `--team`/`--all-teams` is given.
+
 ## [0.15.0] - 2026-08-24
 
 ### Added
@@ -269,7 +290,7 @@ The format is based on Keep a Changelog, adapted for this repository.
 
 ### Added
 
-- Added [`PLAN.md`](/Users/jsiml/Documents/GitHub/go-training-range/linear/PLAN.md) describing the next extension pass for the CLI.
+- Added `PLAN.md` describing the next extension pass for the CLI.
 - Documented the missing workflows discovered in real usage:
   - parent-child ticket creation
   - issue updates

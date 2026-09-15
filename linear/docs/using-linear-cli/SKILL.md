@@ -1,6 +1,6 @@
 ---
 name: linear-cli
-description: Interact with Linear via the `linear` Go CLI — fetch/create/update issues, list issues by label/state/assignee, create/list/get/edit/delete/upsert comments, and read viewer identity across multiple workspaces with profile-based auth, workspace mutation guards, and structured `--error-json` errors. Use when an agent needs to read or modify Linear tickets or workpad comments without touching the GraphQL API directly.
+description: Interact with Linear via the `linear` Go CLI — fetch/create/update issues (including team override and point estimate), list issues by label/state/assignee, create/list/get/edit/delete/upsert comments, list teams/projects/labels/users, create projects, and read viewer identity across multiple workspaces with profile-based auth, workspace mutation guards, and structured `--error-json` errors. Use when an agent needs to read or modify Linear tickets, epics/projects, or workpad comments without touching the GraphQL API directly.
 ---
 
 # Linear CLI
@@ -10,8 +10,10 @@ Single-binary Go CLI (`linear`) for the Linear API. Profile-driven, multi-worksp
 ## When to Use
 
 - **Read a ticket** by identifier or URL (`AGI-123`, `https://linear.app/.../issue/AGI-123/...`)
-- **List issues** by label / state / assignee with cursor pagination (`issues list`)
-- **Create / update** issues (title, description, parent, labels, state, priority, assignee)
+- **List issues** by label / state / assignee / team / created-date with cursor pagination (`issues list`); the team and created-date filters also support analytical reports
+- **Create / update** issues (title, description, parent, labels, state, priority, assignee, `--team`, `--estimate`)
+- **Discover** teams, projects, labels, and users (`teams list`, `projects list`, `labels list`, `users list`)
+- **Create a project** (an epic-level grouping) with `project create`
 - **Comments**: create, list, get, edit in place, delete, upsert (use this instead of `curl`-ing `api.linear.app/graphql`)
 - **Idempotent workpad updates**: prefer `comment upsert --marker` over list+edit; the marker is auto-prepended so the next call edits in place
 - **Multi-workspace**: switch via `--profile <name>` or `LINEAR_PROFILE`
@@ -51,6 +53,7 @@ linear comment list SVI-15 --json --filter-prefix "## Dance Workpad" \
 | Update issue | `linear update AGI-123 --state QA --assignee me` |
 | Clear parent | `linear update AGI-123 --clear-parent` |
 | Clear all labels | `linear update AGI-123 --clear-labels` |
+| Remove selected labels | `linear update AGI-123 --remove-label dance2:done` |
 | Attach a label, creating it if missing | `linear update AGI-123 --label new-label --create-missing-labels` |
 | Create comment | `linear comment create AGI-123 "ack"` |
 | Upsert workpad comment | `linear comment upsert AGI-123 --marker "## Workpad" --body-file workpad.md --json` |
@@ -65,10 +68,25 @@ linear comment list SVI-15 --json --filter-prefix "## Dance Workpad" \
 | Delete comment | `linear comment delete <uuid> --yes` |
 | List issues by label | `linear issues list --label dance2:active --json` |
 | List issues paginated | `linear issues list --label dance2:active --json --cursor "..."` |
+| List a frozen update window | `linear issues list --updated-since <RFC3339> --updated-before <RFC3339> --limit 10 --json` |
 | Print viewer identity | `linear me --json` |
 | Favorite an issue | `linear favorite add AGI-123` |
 | Unfavorite an issue | `linear favorite remove AGI-123` |
 | List your favorites | `linear favorite list --json` |
+| Mark an issue as blocking another | `linear relate AGI-288 --blocks AGI-286` |
+| Mark an issue as blocked by another | `linear relate AGI-286 --blocked-by AGI-288` (equivalent to the line above) |
+| Mark issues as related | `linear relate AGI-288 --related AGI-300` |
+| Mark an issue as a duplicate | `linear relate AGI-288 --duplicate-of AGI-290` |
+| List an issue's relations | `linear relations AGI-288 --json` |
+| Remove a relation | `linear relate AGI-288 --remove <relation-id>` (find the id via `linear relations`) |
+| Create issue in a specific team | `linear create "Title" --team AGID` (overrides the profile's team_id; a `--state` name resolves against this team) |
+| Set a point estimate | `linear create "Title" --estimate 5` / `linear update AGI-123 --estimate 3` (accepts values outside `{1,3,5,8}` with a warning) |
+| Move an issue to another team | `linear update AGI-123 --team AGID` |
+| List teams | `linear teams list --json` |
+| List projects (optionally by team) | `linear projects list --team AGID --json` |
+| List labels (optionally by team) | `linear labels list --team AGID --json` |
+| List users (active only / all) | `linear users list --json` / `linear users list --all --json` |
+| Create a project (epic) | `linear project create "Q3 Search Revamp" --team AGID --lead me` |
 
 For canonical detail run `linear <cmd> --help` (do not duplicate it here).
 
@@ -95,7 +113,7 @@ profiles:
 
 Resolution order: `--profile` flag > `LINEAR_PROFILE` env > `default_profile` field > sole profile (when only one is defined) > legacy `linear:` block.
 
-**Workspace guard**: every mutation (`create`, `update`, `comment create/edit/delete`, `favorite add/remove`) calls Linear once to confirm the api_key's organization matches the profile's `workspace_key`. On mismatch the request is aborted with `WORKSPACE_MISMATCH` before any write. Read commands (`get`, `comment list`, `comment get`, `favorite list`) skip the guard.
+**Workspace guard**: every mutation (`create`, `update`, `comment create/edit/delete`, `favorite add/remove`, `relate`) calls Linear once to confirm the api_key's organization matches the profile's `workspace_key`. On mismatch the request is aborted with `WORKSPACE_MISMATCH` before any write. Read commands (`get`, `comment list`, `comment get`, `favorite list`, `relations`) skip the guard.
 
 Setup a profile interactively:
 
@@ -173,6 +191,12 @@ while :; do
 done
 ```
 
+For a durable incremental poll, freeze both timestamp bounds on the first page
+and reuse them unchanged with every returned cursor. `--updated-since` is
+exclusive, `--updated-before` is inclusive, and the CLI pins `orderBy:
+updatedAt`. Do not advance a time watermark until the envelope returns a null
+cursor; doing so can skip issues that share the last page's timestamp.
+
 ### Round-trip a comment body through a transform
 
 ```bash
@@ -181,6 +205,26 @@ linear comment get <uuid> --json \
   | sed 's/old/new/' \
   | linear comment edit <uuid> --body-file -
 ```
+
+### Create an epic (project) with tickets under it
+
+```bash
+# 1. Resolve the team key/name once with `teams list` if unsure.
+linear teams list --json
+
+# 2. Create the project ('epic') scoped to that team.
+PROJECT_ID=$(linear project create "Q3 Search Revamp" --team AGID --lead me --json | jq -r .id)
+
+# 3. Create tickets in the project, with an estimate.
+linear create "Migrate ingestion" --team AGID --project "$PROJECT_ID" --estimate 5 --json
+linear create "Backfill index" --team AGID --project "$PROJECT_ID" --estimate 3 --json
+```
+
+`--team` on `create`/`update` always overrides the profile's default team,
+and any `--state` name passed alongside it (e.g. `Triage`) resolves against
+that team, not the profile's team. `--estimate` accepts the common
+`{1,3,5,8}` scale; other positive integers are accepted with a stderr
+warning rather than rejected, since teams can configure their own scale.
 
 ### Find your last comment by author → edit
 
@@ -305,7 +349,14 @@ out=$(linear --error-json --profile work comment edit "$id" --body-file - 2> err
 - The legacy positional form `linear comment SVI-15 "msg"` still works but new scripts should use `linear comment create SVI-15 "msg"`.
 - `comment upsert --marker M --body B` auto-prepends `M + "\n\n"` to `B` when `B` doesn't already start with `M`. This is what makes the next `upsert` find the same comment by prefix; do not double-include the marker in your body content.
 - `comment list --since` is server-side (Linear's `comments(filter: {createdAt: {gt: ...}})`); `--exclude-user` is client-side. Both go through `ListCommentsFiltered` rather than `ListComments`.
-- `issues list` does NOT apply active profile defaults — the filter is exactly what you pass. Use `--cursor` from the previous page's `cursor` field for pagination (null means last page).
+- `issues list` **does** apply the active profile's configured team by default (same as every other command) unless `--all-teams` or `--team <key>` is passed — it is not an unfiltered, defaults-free query. Use `--cursor` from the previous page's `cursor` field for pagination (null means last page).
+- `issues list --state-not <name>` (repeatable) excludes workflow states server-side via `nin`; mutually exclusive with `--state`. `--team <key>` (repeatable) filters by team key and overrides the profile's team; it is mutually exclusive with `--all-teams`. `--created-before` / `--created-after` filter by `createdAt` (RFC3339 or bare `YYYY-MM-DD`, treated as UTC midnight); `--created-before` is exclusive, `--created-after` is inclusive. Each `IssueSummary` also now carries `createdAt` and `team {id key name}`, enabling analytical reports, e.g.:
+
+  ```bash
+  linear issues list --label bug --state-not Done --state-not DEV --state-not UAT \
+    --state-not Cancelled --state-not Duplicate --created-before 2026-01-01 \
+    --all-teams --json | jq '.issues | group_by(.team.key) | map({team: .[0].team.key, count: length})'
+  ```
 - `linear me` is cached per CLI invocation (one round-trip max). Use `--json` and jq to extract `id` when feeding `--exclude-user`.
 - Active profile and stakeholders are echoed at the bottom of every `--help` — handy for confirming you're in the right workspace before mutating.
 - `favorite add`/`favorite remove` are viewer-scoped (no `--user` flag) and idempotent: `add` on an already-favorited issue and `remove` on a non-favorited issue both exit 0 with `changed: false` in `--json`. Both look up the viewer's existing favorites first, so a retry after a partial failure is always safe. `favorite list` returns every favorite type the viewer has (not just issues); non-issue entries (e.g. `predefinedView`) have no `identifier`/`issueId`.
