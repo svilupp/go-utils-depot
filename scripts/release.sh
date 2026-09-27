@@ -6,6 +6,7 @@ set -euo pipefail
 #   release.sh <source-dir> <tool> <version>  # explicit source path (always wins)
 #
 # Set RELEASE_DRAFT=1 to upload a draft for verification before publication.
+# Set RELEASE_BUILD_ONLY=1 to build archives and checksums without publishing.
 #
 # Examples:
 #   ./scripts/release.sh newrelicexplorer v0.1.0
@@ -25,7 +26,7 @@ MONOREPO_ROOT="${SCRIPT_DIR}/../../go-training-range"
 # Registered tools use source directories under go-training-range. Keep this
 # as an indexed array so the script works with macOS Bash 3.2.
 REGISTERED_TOOLS=(
-  newrelicexplorer sentryexplorer openrouterexplorer linear logfire-trace
+  sotto notion wipd newrelicexplorer sentryexplorer openrouterexplorer linear logfire-trace
   logfire-viewer agent-playbooks slack argocdexplorer
   lightdashctl dbexplorer firestoreexplorer agenticforge
 )
@@ -150,6 +151,11 @@ echo ""
 echo "Archives:"
 ls -lh "$DIST"
 echo ""
+
+if [ "${RELEASE_BUILD_ONLY:-0}" = "1" ]; then
+  echo "Build-only complete for ${TAG}. No GitHub release created."
+  exit 0
+fi
 
 echo "Creating release ${TAG}..."
 cd "$DEPOT_ROOT"

@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Keep it brief!
 
+## [0.5.1] - 2026-09-27
+
+### Fixed
+
+- Closed the static asset response before the server shutdown test, restoring
+  the release check on current Go versions.
+
 ## [0.5.0] - 2026-08-31
 
 Coordinated with `logfire-trace 0.17.0`.

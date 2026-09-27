@@ -546,3 +546,8 @@ These still work but are legacy and print a stderr warning; prefer the replaceme
 
 - [CLI workflow](docs/logfire-trace-cli/SKILL.md)
 - [Replay workflow](docs/replaying-logfire-conversations/SKILL.md)
+
+## Agent guides
+
+- [CLI workflow](docs/logfire-trace-cli/SKILL.md)
+- [Replay workflow](docs/replaying-logfire-conversations/SKILL.md)

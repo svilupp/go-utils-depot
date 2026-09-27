@@ -37,6 +37,8 @@ Binaries are cross-compiled locally and uploaded via `gh`:
 Builds static binaries for each tool's supported platforms, packages them, generates checksums, and creates a GitHub release tagged `<tool>/<version>`. `lightdashctl` and `dbexplorer` currently ship macOS and Linux binaries only because their source modules use Unix file locking.
 
 Requires `go` and `gh` (authenticated to the svilupp account).
+For local verification before publication, set `RELEASE_BUILD_ONLY=1`; this
+builds archives and checksums under `dist/` without creating a GitHub release.
 
 ## Important
 

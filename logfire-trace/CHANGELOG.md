@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Keep it brief!
 
+## [0.17.1] - 2026-09-27
+
+### Fixed
+
+- Resolved lint failures in CLI output handling and test cleanup.
+
 ## [0.17.0] - 2026-08-31
 
 ### Changed

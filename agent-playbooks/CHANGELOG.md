@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Keep it brief!
 
+## 0.6.0 - 2026-09-26
+
+### Added
+
+- Project discovery for Claude and Codex roots, multiple custom roots, predictable skill selection, invocation-linked feedback, and bounded reads.
+
+## 0.5.0 - 2026-09-26
+
+### Added
+
+- Shared read/search resolution for exact names, normalized names, aliases, configured conventions, and confidence-gated lexical matches. Ambiguous reads return candidates with recovery commands.
+- `load`, `show`, and `find` aliases; explicit JSON and structured errors; list filtering and limits; idempotent initialization.
+- Declared aliases on Claude command frontmatter, preserving historical command repairs as one-call resolutions.
+- Project-local native roots and `.agent-playbooks.yaml` manifests with worktree boundaries, precedence, and source provenance.
+- Bounded invocation JSONL records, feedback by invocation ID, `admin stats`, and locked feedback appends.
+- Body-free metadata, stable outlines and section reads, hash guards, output budgets, and explicit partial batch reads.
+- Router drift diagnostics and guarded `admin sync-router` previews and updates.
+- A synthetic retrieval evaluation with all 30 audited queries, held-out task diagnostics,
+  crowded-catalog distractors, four harness metadata variants, and forced-read metrics.
+
+### Changed
+
+- Lexical search uses inverse-frequency weighting and explicit abstention for broad or weak queries.
+- `read --metadata` is documented as a JSON array that includes the body; `--metadata-only` omits it.
+
+## 0.4.0 - 2026-09-23
+
+### Added
+
+- `read` repairs missing names using configurable prefix/suffix conventions (e.g. `dbexplorer` → `using-dbexplorer-cli`), then tries confidence-gated search. Repairs are announced on stderr; ambiguous conventions never auto-read.
+
 ## 0.3.0 - 2026-08-02
 
 ### Added

@@ -1,5 +1,5 @@
 ---
-name: authoring-dbexplorer-knowledge
+name: authoring-database-knowledge
 description: Onboard or improve a PostgreSQL or BigQuery knowledge root for dbexplorer. Not loaded during normal query work.
 ---
 
@@ -29,4 +29,4 @@ Use this when adding a source or repairing docs. Write files in the configured k
 | Warehouse table | lineage, refresh, event vs ingest time, late arrivals, reconciliation limits |
 | Example | purpose, engine, relations, typed parameters, test values, invariant |
 
-Keep table/metric docs to about 20-60 lines. `unknown` plus a reason is valid. Use local templates when available.
+Keep table/metric docs to about 20-60 lines. `unknown` plus a reason is valid. Templates: `references/source.md`, `domain.md`, `table.md`, `join.md`, `metric.md`, `example.sql`.

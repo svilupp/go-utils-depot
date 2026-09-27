@@ -26,8 +26,7 @@ slack poll
 ```
 
 See [`docs/using-slack-cli/SKILL.md`](docs/using-slack-cli/SKILL.md) for the full command reference and
-agent-oriented usage notes, and [`docs/research.md`](docs/research.md)
-for the rate-limiting design this CLI implements.
+agent-oriented usage notes.
 
 ## Commands
 
@@ -38,6 +37,9 @@ for the rate-limiting design this CLI implements.
 | `slack users list` | List workspace users (cached 24h) |
 | `slack read <channel>` | Read history or a thread's replies |
 | `slack send <channel> <text>` | Post a message |
+| `slack send --operation-file <json>` | Send with a durable operation key and receipt |
+| `slack send-journal init/status` | Initialize or inspect the local outbound journal |
+| `slack send-receipt <operation-key>` | Inspect the receipt for a journaled send |
 | `slack dm <user> <text>` | Open (or reuse) a DM and send |
 | `slack poll` | Print new messages in the resolved watch set since last poll (fast, `search.messages`-based dirty-channel detection by default; `--full` forces a legacy full sweep) |
 | `slack mentions --user <id>` | Print new workspace-wide exact `<@USER_ID>` mentions of a user since the last run (`search.messages`-based, requires `search:read` scope) |
@@ -55,6 +57,16 @@ failure (see `internal/errs`). Exit codes: `1` internal, `2` unauthorized,
 errors), `9` upstream unavailable (retryable), `10` write blocked (send/dm
 refused by the `write:` policy -- see below). `read`/`poll` support
 `--oldest-first`/`--cursor` for chronological output and pagination.
+
+For one conversation, `slack poll --channel <ID> --since <Slack-ts>
+--state-file <path> --json` reads from a fixed boundary, including messages
+sent by the current user and replies under older thread roots. An incomplete
+thread read is reported as an error and does not advance the checkpoint.
+
+Journaled sends require `slack send-journal init` and a private operation file
+with a stable key, journal identity, exact destination, and message body. An
+identical retry returns the prior receipt. An ambiguous send reports `unknown`
+and does not automatically send again. Keep the operation file private.
 
 ## Configuration
 
@@ -102,9 +114,7 @@ By default `slack poll` runs a fast path: it queries `search.messages`
 new activity since the last poll, then only calls `conversations.history`
 for those "dirty" channels -- instead of sweeping every watched channel
 every cycle. On a quiet cycle across hundreds of channels this turns a
-multi-minute Tier-3 sweep into a handful of calls and a few seconds. See
-[`docs/FAST_POLL_FINDINGS.md`](docs/FAST_POLL_FINDINGS.md) for the
-empirical findings behind this design.
+multi-minute Tier-3 sweep into a handful of calls and a few seconds.
 
 A few things to know:
 

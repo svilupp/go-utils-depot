@@ -6,7 +6,7 @@ against PostgreSQL and BigQuery.
 ## Install
 
 ```bash
-eget svilupp/go-utils-depot --tag 'dbexplorer/v0.1.0' --to ~/.local/bin
+eget svilupp/go-utils-depot --tag 'dbexplorer/' --to ~/.local/bin
 
 # Optional shell alias
 alias dbx='dbexplorer'
@@ -48,6 +48,7 @@ with `query --file`.
 Use `query --check` for a cost estimate before expensive SQL. Limits, timeouts,
 cache settings, and activity logging are configured in the private config.
 Tunnels and cloud authentication stay outside the CLI.
+Use `inspect catalog --match 'schema.pattern*'` to narrow relation discovery.
 
 ## Output and safety
 
@@ -63,4 +64,4 @@ See [CHANGELOG.md](CHANGELOG.md) and
 [docs/using-dbexplorer-cli/SKILL.md](docs/using-dbexplorer-cli/SKILL.md).
 
 For catalog maintainers, see
-[docs/authoring-dbexplorer-knowledge/SKILL.md](docs/authoring-dbexplorer-knowledge/SKILL.md).
+[docs/authoring-database-knowledge/SKILL.md](docs/authoring-database-knowledge/SKILL.md).

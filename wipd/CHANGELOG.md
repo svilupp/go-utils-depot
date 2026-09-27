@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Keep it brief!
 
+## [0.1.1] - 2026-09-27
+
+### Fixed
+
+- Updated file cleanup and output handling to pass the current lint and race
+  checks; simplified environment and temporary directory handling in tests.
+
 ## [0.1.0] - 2026-03-08
 
 ### Added

@@ -42,6 +42,7 @@ slack watch list --resolve              # what the next poll will actually visit
 slack poll --json                       # only new messages since last poll
 slack poll --refresh                    # re-fetch conversations.list before resolving patterns
 slack poll --oldest-first=false         # newest-first (default is oldest-first)
+slack poll --channel <ID> --since <Slack-ts> --state-file <path> --json
 
 slack mentions --user U08T71B5F0F --json  # new workspace-wide exact @mentions since last run
 
@@ -50,6 +51,12 @@ slack send partner-channel-qa "ok" --force  # override write.external=deny for a
 slack logs path                         # where the ops log lives
 slack logs tail -n 100                  # see what the CLI just did
 ```
+
+For durable writes, initialize the outbound journal with `slack send-journal
+init`, then use `slack send --operation-file <private-json>`. Inspect a prior
+operation with `slack send-receipt <operation-key>`. Keep the operation file
+private and retain the journal identity. An ambiguous send is reported as
+`unknown` and is never automatically repeated for the same key.
 
 `slack poll` is the agent-loop primitive: it checks the active profile's
 resolved `watch:` set (see `slack watch list --resolve` and the README
@@ -104,8 +111,7 @@ output indents it with `↳`).
 If `search.messages` itself fails (missing `search:read*` scope, rate
 limited, etc.), `poll` logs a warning to stderr and the oplog and
 transparently falls back to a full sweep for that cycle -- it never
-fails the whole poll just because the detector is unavailable. See
-`docs/FAST_POLL_FINDINGS.md` for the empirical API research behind this.
+fails the whole poll just because the detector is unavailable.
 
 `slack watch add <ref>` (and its deprecated alias `slack config
 add-channel <ref>`) requires `<ref>` to actually resolve against the
@@ -154,9 +160,8 @@ slack send partner-channel-qa "ok to ship" --force   # posts anyway
 `write.allowlist`, if non-empty, restricts posting to matches
 (overridable with `--force`). `write.external: allow` disables the
 Slack-Connect check entirely. Blocked attempts are logged to the ops log
-as `{"op":"send","ok":false,"blocked":"external", ...}` (or `dm`). See
-`docs/POLLING_DESIGN.md` §0.2 for why channel *names* aren't a reliable
-external-share signal.
+as `{"op":"send","ok":false,"blocked":"external", ...}` (or `dm`).
+Channel names alone are not a reliable external-share signal.
 
 ## Ops log
 

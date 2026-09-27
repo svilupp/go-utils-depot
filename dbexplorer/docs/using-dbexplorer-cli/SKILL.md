@@ -20,6 +20,7 @@ querying. Use schema inspection only to resolve a specific uncertainty.
 | Learn an unfamiliar source | `dbexplorer docs overview --source analytics --human` |
 | Check columns or joins | `dbexplorer inspect describe public.tasks --endpoint primary --human` |
 | Find an endpoint | `dbexplorer inspect sources` |
+| Match relations | `dbexplorer inspect catalog --endpoint primary --match 'public.task*'` |
 
 `docs read` takes a `source:path` ref. Live commands take `--endpoint`. Notes
 are configured outside the depot and may use any source names.
@@ -78,7 +79,7 @@ authentication are managed outside the CLI.
 | --- | --- |
 | Empty docs search or list | Broaden the search or inspect the source overview |
 | Unknown relation or column | Run `inspect describe` or `inspect catalog` |
-| Empty catalog | Check glob syntax, endpoint, filters, and metadata freshness |
+| Empty catalog | Check `--match` glob syntax, endpoint, filters, and metadata freshness |
 | Parameter or placeholder error | Read `dbexplorer query --help` and keep the dialect consistent |
 | Connection or auth failure | Run `dbexplorer inspect check --endpoint ENDPOINT` |
 | Query cap or timeout | Explain the bound, narrow the query, or adjust config |

@@ -20,10 +20,14 @@ schema, and docs to resolve specific uncertainty.
 | Inspect one resource | `lightdashctl discover get dashboard <REF>` |
 | Find fields in an explore | `lightdashctl discover search latency --kind field --explore <EXPLORE_REF>` |
 | Read metric notes | `lightdashctl docs search latency --kind metric` then `lightdashctl docs read <REF>` |
-| Copy a local template | `lightdashctl docs copy <TEMPLATE> --as demo --space <SPACE_REF> -o ./demo` |
+| Create a local bundle | `lightdashctl new --from <TEMPLATE_OR_REF> --as demo --space <SPACE_REF>` |
+| Pull remote content | `lightdashctl pull <REF> ./bundle` |
 | Compile a query | `lightdashctl analyze query ./query.yml --compile-only` |
-| Preview a publish | `lightdashctl build plan ./bundle` |
-| Publish a bundle | `lightdashctl build apply ./bundle` |
+| Preview a publish | `lightdashctl status ./bundle` |
+| Publish a bundle | `lightdashctl apply ./bundle` |
+
+`new`, `pull`, `status`, `apply`, and `delete` are the current bundle verbs.
+The former `build` commands and `docs copy` still work as deprecated aliases.
 
 ## Output contract
 
@@ -51,9 +55,9 @@ The CLI does not load `.env` files. Configuration precedence is
 Refs are exact UUIDs, slugs, configured `@aliases`, or URLs from the same
 Lightdash instance. Resource titles do not identify a write target.
 
-`build apply` is the only remote content mutation. `build plan` validates the
+`apply` is the only remote content mutation. `status` validates the
 full bundle against live resources and previews field changes without
-publishing or executing queries. `build delete` writes a local deletion bundle.
+publishing or executing queries. `delete` writes a local deletion bundle.
 Export forks remove `ownerEmail`, `access`, `verified`, and `verification` from
 exported resources. Use a verified sandbox for authoring.
 

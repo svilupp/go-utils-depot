@@ -6,7 +6,7 @@ bundles.
 ## Install
 
 ```bash
-eget svilupp/go-utils-depot --tag 'lightdashctl/v0.1.0' --to ~/.local/bin
+eget svilupp/go-utils-depot --tag 'lightdashctl/' --to ~/.local/bin
 
 # Optional shell alias
 alias ldc='lightdashctl'
@@ -34,8 +34,9 @@ Provide a local query file or bundle directory before running these commands:
 
 ```bash
 lightdashctl analyze query ./query.yml --compile-only
-lightdashctl build plan ./bundle
-lightdashctl build apply ./bundle
+lightdashctl new --from <TEMPLATE_OR_REF> --as demo --space <SPACE_REF>
+lightdashctl status ./demo
+lightdashctl apply ./demo
 ```
 
 ## Commands
@@ -43,9 +44,9 @@ lightdashctl build apply ./bundle
 | Command | Purpose |
 | --- | --- |
 | `discover search/get/values` | Find content and inspect resources or field values |
-| `docs search/read/copy` | Search and read the configured local catalog; copy templates |
+| `docs search/read` | Search and read the configured local catalog |
 | `analyze query/chart/dashboard/status/results/cancel` | Compile, run, and recover metric queries |
-| `build export/plan/apply/delete` | Export, validate, publish, or delete a bundle |
+| `new/pull/status/apply/delete` | Create, fetch, preview, publish, or stage deletion of a bundle |
 | `maintain check` | Check references or broken content |
 | `config init/show/doctor` | Set up and validate configuration |
 | `schema` | Print the machine-readable command contract |
@@ -58,9 +59,10 @@ lightdashctl build apply ./bundle
   means invalid usage, configuration, or input.
 - Refs are exact UUIDs, slugs, configured `@aliases`, or same-instance URLs.
   Writes never select a fuzzy match.
-- `build apply` is the only remote content mutation. `build plan` validates the
+- `apply` is the only remote content mutation. `status` validates the
   bundle against live resources without publishing or executing queries.
-- `build delete` writes a local deletion bundle.
+- `delete` writes a local deletion bundle. The former `build` and `docs copy`
+  commands remain as deprecated aliases.
 - Native export needs the Lightdash `view:ContentAsCode` permission. Use a
   verified sandbox before applying a bundle to shared content.
 
