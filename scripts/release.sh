@@ -20,7 +20,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 # Source checkout locations are private local configuration. Override the root
 # with RELEASE_SOURCE_ROOT or save one path in the ignored .release-source-root.
 SOURCE_ROOT="${RELEASE_SOURCE_ROOT:-}"
-if [ -z "$SOURCE_ROOT" ] && [ -f "${SCRIPT_DIR}/../.release-source-root" ]; then
+if [ $# -eq 2 ] && [ -z "$SOURCE_ROOT" ] && [ -f "${SCRIPT_DIR}/../.release-source-root" ]; then
   IFS= read -r SOURCE_ROOT < "${SCRIPT_DIR}/../.release-source-root" || [ -n "$SOURCE_ROOT" ]
 fi
 
