@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.3.0 - 2026-10-18
+
+### Added
+
+- Named Google authentication profiles selected by source or endpoint, with
+  atomic endpoint overrides and credential-free discovery.
+- Explicit `access_token` authentication through `token_env` for externally
+  supplied OAuth tokens or bearer placeholders; no private key is needed
+  in the hosted config and no ADC fallback occurs.
+
+### Fixed
+
+- Partition persistent query/metadata evidence and job receipts by credentials,
+  target, profile, and policy. Opaque bearer-token identities bypass persistent
+  reuse and cannot resume jobs across commands.
+- Reject redirects from the authenticated BigQuery client.
+- Reject non-string authentication references and token-variable names, and
+  reject invalid token control bytes before making requests.
+- Direct expired injected-token users to the trusted launcher instead of ADC login.
+
+### Changed
+
+- Replace organization-specific examples in bundled help and configuration with
+  generic placeholders.
+
 ## 0.2.0 - 2026-09-27
 
 ### Added

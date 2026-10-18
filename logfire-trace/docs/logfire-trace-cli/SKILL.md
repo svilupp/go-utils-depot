@@ -118,29 +118,19 @@ logfire-trace replay -c <chat_id> --list-replay-spans
 
 ## Aggregate trace analysis: common pitfalls
 
-Hard-won lessons from a production incident where a reported count got retracted twice:
+Use structured fields and an explicit population when counting trace events:
 
-- **Never** match error codes with `attributes::text ILIKE '%CODE%'` — error-code tables
-  are embedded in system prompts, so this matches nearly every trace (540 vs a true ~30
-  in one incident). Query the structured attribute on the tool span instead (e.g.
-  `tool.error_code`, `ai.toolCall.result`).
-- Count tool calls on `ai.toolCall` spans (1:1 with live executions), never by
-  pattern-matching `doStream` spans or `ai.prompt.messages` — conversation history
-  replays past events on every later turn (~8x inflation observed). For model-output
-  conditions, scope to `ai.response.toolCalls` only.
-- Exclude test traffic: `attributes->>'conversation.id' LIKE 'test-conv-%'`, known test stores, and
-  filter `deployment_environment = 'production'`. Test/eval harness bursts have
-  contaminated counts by 32–99%. Synthetic tells: ~2ms durations, missing expected
-  child spans.
-- NULL traps: `col LIKE ...` / `col ~ ...` evaluate to NULL (not FALSE) when `col` IS
-  NULL, so `COUNT(*) FILTER (WHERE ...)` silently drops those rows — often the worst
-  failures. Add explicit `OR col IS NULL OR is_exception`.
-- Dimension fields (e.g. `store.id`) may not live on the span you're aggregating — join
-  via `trace_id`, or rows silently drop.
-- State your denominator explicitly and check the complement population; anchoring on
-  "traces like the reported example" hid 54% of defects in one investigation.
-- Distinguish domain-valid error codes (e.g. `SEARCH_NO_RESULTS`) from infrastructure
-  errors before computing error rates.
+- Query the tool span's structured error attribute. Searching serialized
+  attributes can also match examples embedded in system prompts.
+- Count execution spans rather than copies of tool history in later prompts.
+  For model-output conditions, inspect the current response's tool calls.
+- Exclude synthetic traffic using your configured environment and test markers.
+  Confirm those markers against the data before relying on them.
+- SQL predicates over NULL can silently exclude rows. Handle missing attributes
+  explicitly when they belong in the population.
+- Join dimensions through `trace_id` when they live on another span.
+- State the denominator and check the complement population.
+- Separate expected domain outcomes from infrastructure failures.
 
 ## Filing traces for review (logfire-viewer saved)
 

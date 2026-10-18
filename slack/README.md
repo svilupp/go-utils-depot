@@ -158,8 +158,8 @@ the `search:read` scope; a bot token without that scope returns a clear
 error instead of crashing.
 
 ```bash
-slack mentions --user U08T71B5F0F --json
-slack mentions --user U08T71B5F0F --state-file /var/lib/postak/slack-mentions.json --json
+slack mentions --user U0123456789 --json
+slack mentions --user U0123456789 --state-file ./slack-mentions-state.json --json
 ```
 
 - Like `slack poll`, the first run for a given user never backfills: it

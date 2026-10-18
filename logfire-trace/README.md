@@ -190,7 +190,7 @@ It shows:
 - the canonical turn graph
 - raw alias mappings such as `user:1`, `tool:0`, and `msg:5`
 - unwrapped `user_input` text when the raw message is a transcription wrapper
-- explicit markers for synthetic server-update turns so you do not mistake them for the shopper's first message
+- explicit markers for synthetic server-update turns so you do not mistake them for the user's first message
 - response boundaries that are safe for `--respond-to` / `--regenerate`
 - a concrete command to run
 
@@ -219,17 +219,17 @@ Replay JSON now includes an `inspection` object with:
 For `--forward-from ... --dry-run`, inspect `preflight` and `would_call`; dry-run validates the
 sequential replay plan but does not synthesize per-step `results`.
 
-### Multi-Turn Shopping Example
+### Synthetic multi-turn example
 
-Real shopping traces often look like:
+A trace can look like:
 
 ```text
-turn:12.user       "Any pink hoodies?"
-turn:12.tool:0     product_search results
+turn:12.user       "Find recent tasks"
+turn:12.tool:0     task_search results
 turn:12.response   "Here are three options"
-turn:13.user       "Show me the second one"
-turn:13.tool:0     product details
-turn:13.response   "This one's cropped..."
+turn:13.user       "Show the second task"
+turn:13.tool:0     task details
+turn:13.response   "This task is in progress"
 ```
 
 Useful commands:
@@ -312,7 +312,7 @@ logfire-trace replay trace.json --model gemini-2.5-flash --output gemini.json
 logfire-trace replay logs/chat.json --dry-run
 
 # Replay a chat fixture, supply the recipe explicitly
-logfire-trace replay logs/chat.json --recipe 019aabbccdd... --dry-run
+logfire-trace replay logs/chat.json --recipe 0123456789abcdef0123456789abcdef --dry-run
 
 # Replay a Firestore chat by ID with an explicit recipe trace
 logfire-trace replay <chat_id> --recipe trace.json
@@ -363,7 +363,7 @@ Ambiguous inputs error out and list the candidate kinds — there are no silent 
 When a chat fixture file carries `metadata.trace.primary_trace_id`, the replay command will auto-load that trace as the recipe and print a stderr note:
 
 ```
-recipe: auto-discovered from chat metadata: 019ddaeb466ff5ca2e...
+recipe: auto-discovered from chat metadata: <trace-id>
 ```
 
 Pass `--recipe` explicitly to override the auto-discovered value.
@@ -380,8 +380,8 @@ If the chat contains tool calls but no tool definitions are available (no recipe
 JSON — where each value came from (chat, recipe, flag, sibling span). Use `--human` for text:
 
 ```bash
-logfire-trace replay logs/chat.json --recipe 019aabbccdd... --dry-run | jq '.preflight'
-logfire-trace replay logs/chat.json --recipe 019aabbccdd... --dry-run --human
+logfire-trace replay logs/chat.json --recipe 0123456789abcdef0123456789abcdef --dry-run | jq '.preflight'
+logfire-trace replay logs/chat.json --recipe 0123456789abcdef0123456789abcdef --dry-run --human
 ```
 
 The `--json` flag remains as a deprecated compatibility alias. Inspection modes never call a

@@ -17,18 +17,19 @@ set -euo pipefail
 # home paths committed). Everything is anchored to this.
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-# Tool sources for this depot live under the go-training-range checkout, which
-# sits next to go-utils-depot (both are siblings under a common parent). From
-# scripts/ that is: up to the depot root (..), up once more to the common parent
-# (..), then into go-training-range.
-MONOREPO_ROOT="${SCRIPT_DIR}/../../go-training-range"
+# Source checkout locations are private local configuration. Override the root
+# with RELEASE_SOURCE_ROOT or save one path in the ignored .release-source-root.
+SOURCE_ROOT="${RELEASE_SOURCE_ROOT:-}"
+if [ -z "$SOURCE_ROOT" ] && [ -f "${SCRIPT_DIR}/../.release-source-root" ]; then
+  IFS= read -r SOURCE_ROOT < "${SCRIPT_DIR}/../.release-source-root" || [ -n "$SOURCE_ROOT" ]
+fi
 
-# Registered tools use source directories under go-training-range. Keep this
-# as an indexed array so the script works with macOS Bash 3.2.
+# Registered tools use subdirectories of the configured source root. Keep an
+# indexed array so the script works with macOS Bash 3.2.
 REGISTERED_TOOLS=(
   sotto notion wipd newrelicexplorer sentryexplorer openrouterexplorer linear logfire-trace
   logfire-viewer agent-playbooks slack argocdexplorer
-  lightdashctl dbexplorer firestoreexplorer agenticforge
+  lightdashctl dbexplorer firestoreexplorer agenticforge revlet
 )
 
 TOOL="${1:?Usage: release.sh <tool> <version>  OR  release.sh <source-dir> <tool> <version>}"
@@ -46,8 +47,8 @@ elif [ $# -eq 2 ]; then
   VERSION="$2"
   REGISTERED=""
   for CANDIDATE in "${REGISTERED_TOOLS[@]}"; do
-    if [ "$CANDIDATE" = "$TOOL" ]; then
-      REGISTERED="${MONOREPO_ROOT}/${TOOL}"
+    if [ "$CANDIDATE" = "$TOOL" ] && [ -n "$SOURCE_ROOT" ]; then
+      REGISTERED="${SOURCE_ROOT}/${TOOL}"
       break
     fi
   done
@@ -74,6 +75,7 @@ if [ ! -d "$SOURCE_DIR" ]; then
   echo "  release.sh <source-dir> <tool> <version>  # explicit source path (always wins)"
   echo ""
   echo "Registered tools: ${REGISTERED_TOOLS[*]}"
+  echo "Set RELEASE_SOURCE_ROOT=/path/to/sources or pass an explicit source directory."
   echo "Example: release.sh newrelicexplorer v0.1.0"
   exit 1
 fi
@@ -131,16 +133,33 @@ for PLATFORM in "${PLATFORMS[@]}"; do
 
   echo "  ${GOOS}/${GOARCH}"
   GOOS=$GOOS GOARCH=$GOARCH CGO_ENABLED=0 \
-    go build -C "$SOURCE_DIR" -trimpath -ldflags "$LDFLAGS" \
+    go build -C "$SOURCE_DIR" -trimpath -buildvcs=false -ldflags "$LDFLAGS" \
     -o "${DIST}/${TOOL}${EXT}" .
 
   ARCHIVE="${TOOL}_${VERSION}_${GOOS}_${GOARCH}"
+  PACKAGE_DIR="$DIST"
+  PACKAGE_FILES=("${TOOL}${EXT}")
+  if [ "$TOOL" = "revlet" ]; then
+    PACKAGE_DIR="${DIST}/.revlet-package"
+    mkdir -p "$PACKAGE_DIR"
+    mv "${DIST}/${TOOL}${EXT}" "$PACKAGE_DIR/"
+    python3 "${SCRIPT_DIR}/package-revlet.py" "$SOURCE_DIR" "$DEPOT_ROOT" "$PACKAGE_DIR"
+    PACKAGE_FILES+=(README.md CHANGELOG.md revlet.example.toml LICENSE TAILWIND-LICENSE MERMAID-LICENSE docs browser pi scripts)
+  fi
   if [ "$GOOS" = "windows" ]; then
-    (cd "$DIST" && zip -q "${ARCHIVE}.zip" "${TOOL}${EXT}" && rm "${TOOL}${EXT}")
+    # -X omits extra fields, including local Unix ownership metadata.
+    (cd "$PACKAGE_DIR" && zip -q -X -r "${DIST}/${ARCHIVE}.zip" "${PACKAGE_FILES[@]}" && rm "${TOOL}${EXT}")
   else
-    # COPYFILE_DISABLE=1 suppresses macOS AppleDouble (._*) entries that
-    # otherwise confuse extractors like eget into showing two candidates.
-    (cd "$DIST" && COPYFILE_DISABLE=1 tar czf "${ARCHIVE}.tar.gz" "${TOOL}${EXT}" && rm "${TOOL}${EXT}")
+    # Keep local user/group names out of archive headers. GNU and BSD tar
+    # use different ownership flags. COPYFILE_DISABLE suppresses AppleDouble.
+    if tar --version 2>/dev/null | grep -q 'GNU tar'; then
+      (cd "$PACKAGE_DIR" && COPYFILE_DISABLE=1 tar --format=ustar --no-xattrs --owner=0 --group=0 --numeric-owner -czf "${DIST}/${ARCHIVE}.tar.gz" "${PACKAGE_FILES[@]}" && rm "${TOOL}${EXT}")
+    else
+      (cd "$PACKAGE_DIR" && COPYFILE_DISABLE=1 tar --format=ustar --no-xattrs --uid 0 --gid 0 --uname root --gname root -czf "${DIST}/${ARCHIVE}.tar.gz" "${PACKAGE_FILES[@]}" && rm "${TOOL}${EXT}")
+    fi
+  fi
+  if [ "$TOOL" = "revlet" ]; then
+    rm -rf "$PACKAGE_DIR"
   fi
 done
 

@@ -16,10 +16,10 @@ serves a local dashboard plus a JSON/SSE API for agents. Default bind:
 - **Agent-testing harness output**: the run directories under
   `runs/<run_id>/`
   (`summary.json` + `conversations/` + `replay_traces/`).
-- **Firestore chat exports**: single `ai-chat` documents.
+- **Firestore chat exports**: single conversation documents.
 - **Logfire trace JSON**: anything `lft get` writes, plus flat span
   arrays under `replay_traces/`.
-- **Perseus scenarios and summaries**: single curated JSON files.
+- **Agent-harness scenarios and summaries**: single curated JSON files.
 - **Generic** `[{role, content}, ...]` arrays.
 
 ConvKey fusion means a Logfire trace and a Firestore chat for the same

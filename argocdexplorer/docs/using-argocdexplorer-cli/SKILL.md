@@ -221,7 +221,7 @@ Playbooks:
 2. **Service erroring in prod:** `acx status <nickname>` -> pick the prod row's `app` -> `acx triage <app>` -> filtered logs -> `acx events <app> --warnings-only`
 3. **What changed:** `acx history <app>` (deploy author/message/date) -> `acx logs <app> --since` around the deploy time
 4. **Crash-loop:** `acx resources <app> --unhealthy` -> `acx logs <app> --pod <pod> --previous`
-5. **Env comparison:** `app=$(acx status search 2>/dev/null | jq -r '.[] | select(.environment=="prod-eu") | .app')` then run any `<app>` command against it
+5. **Env comparison:** `app=$(acx status my-service 2>/dev/null | jq -r '.[] | select(.environment=="prod-eu") | .app')` then run any `<app>` command against it
 
 ## Targeting: app names vs. service names
 
@@ -260,7 +260,7 @@ argument:
   the stderr notice — row shape is unchanged.
 
   ```bash
-  acx logs gateway --env prod-eu --since 1d --tail 200
+  acx logs my-service --env prod-eu --since 1d --tail 200
   ```
 
 Naming convention (per environment, from `environments:` patterns — edit

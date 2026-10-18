@@ -186,7 +186,7 @@ skills:
       harness: general
       kind: skills
       enabled: true
-      path: /tmp/agenticforge-e2e/skills
+      path: /path/to/skills-repo/skills
     claude:
       harness: claude
       kind: skills
@@ -214,7 +214,7 @@ installed as `SKILL.md`; generic skills keep their generic body. `playbooks`
 targets preserve the source tree. A custom target is added with:
 
 ```sh
-agenticforge config targets set review --path /tmp/agenticforge-review \
+agenticforge config targets set review --path ./example-skill-target \
   --harness general --kind skills --enable --default
 ```
 
@@ -223,7 +223,7 @@ agenticforge config targets set review --path /tmp/agenticforge-review \
 Catalog config resources use one of these source kinds:
 
 ```yaml
-source: {kind: op-read, ref: op://Engineering/NewRelic/password}
+source: {kind: op-read, ref: op://ExampleVault/ExampleItem/config}
 source: {kind: op-inject, path: fixtures/newrelic.yaml.tpl}
 source: {kind: file, path: fixtures/newrelic.yaml}
 ```

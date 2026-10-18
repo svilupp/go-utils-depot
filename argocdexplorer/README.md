@@ -59,7 +59,7 @@ names; passing `--env` alongside an exact app name is also a usage error
 (there's no environment left to resolve).
 
 ```bash
-acx logs gateway --env prod-eu --since 1d --tail 200
+acx logs my-service --env prod-eu --since 1d --tail 200
 ```
 
 ## Quick triage

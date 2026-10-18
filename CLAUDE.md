@@ -36,9 +36,21 @@ Binaries are cross-compiled locally and uploaded via `gh`:
 
 Builds static binaries for each tool's supported platforms, packages them, generates checksums, and creates a GitHub release tagged `<tool>/<version>`. `lightdashctl` and `dbexplorer` currently ship macOS and Linux binaries only because their source modules use Unix file locking.
 
-Requires `go` and `gh` (authenticated to the svilupp account).
+Requires `go` and `gh` authenticated with release permission for this repository.
+To use the two-argument form, set `RELEASE_SOURCE_ROOT=/path/to/sources`
+or save the source root path in `.release-source-root` (ignored by Git).
+Registered tools are subdirectories of that root. Without a configured root,
+the script looks for a sibling checkout named after the tool. The explicit
+three-argument form always takes precedence. Keep machine-specific paths out
+of committed scripts and documentation.
 For local verification before publication, set `RELEASE_BUILD_ONLY=1`; this
 builds archives and checksums under `dist/` without creating a GitHub release.
+
+Revlet archives include companion runtime files. `scripts/package-revlet.py`
+stages the pinned browser helper, dependencies, licenses, public docs, and skill.
+Live mode requires extracting the full archive with `browser/` beside the binary;
+eget's binary-only install supports annotation, file review, and snapshots.
+Revlet packaging also requires Python 3.
 
 ## Important
 

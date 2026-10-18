@@ -45,7 +45,7 @@ Coordinated with `logfire-trace 0.17.0`.
 
 ## 0.3.3 — 2026-07-03
 
-- Fix: Perseus run scenarios now show the main agent's system prompt instead of the guardrails classifier prompt. `trace_enrichment.system_prompt` is sometimes populated upstream with the wrong prompt (scraped from the `guardrails.classify` → `ai.generateText` span); the loader now recovers the correct prompt from the replay trace's primary agent span (`ai.streamText`/`agent.generate.response`) and prefers it, falling back to `trace_enrichment.system_prompt` when no replay trace is available.
+- Fix: Agent-harness run scenarios now show the main agent's system prompt instead of the guardrails classifier prompt. `trace_enrichment.system_prompt` is sometimes populated upstream with the wrong prompt (scraped from the `guardrails.classify` → `ai.generateText` span); the loader now recovers the correct prompt from the replay trace's primary agent span (`ai.streamText`/`agent.generate.response`) and prefers it, falling back to `trace_enrichment.system_prompt` when no replay trace is available.
 
 ## 0.3.2 — 2026-05-22
 
@@ -53,7 +53,7 @@ Coordinated with `logfire-trace 0.17.0`.
 
 ## 0.3.1 — 2026-05-15
 
-- Render tool calls in Perseus runs whose conversation files leave `tool_invocations` empty but ship a `replay_traces/` dump: load the spans (with basename fallback so cross-machine run dirs work) and synthesize tool calls from descendant `ai.toolCall` spans. Also accept `tool_call`/`tool_result` underscore variants in Logfire trace content alongside the existing hyphen forms.
+- Render tool calls in Agent-harness runs whose conversation files leave `tool_invocations` empty but ship a `replay_traces/` dump: load the spans (with basename fallback so cross-machine run dirs work) and synthesize tool calls from descendant `ai.toolCall` spans. Also accept `tool_call`/`tool_result` underscore variants in Logfire trace content alongside the existing hyphen forms.
 
 ## 0.3.0 — 2026-05-07
 
@@ -78,7 +78,7 @@ Coordinated with `logfire-trace 0.17.0`.
 
 ### Added
 - CLI subcommands: `serve`, `open`, `list`, `inspect`, `show`
-- Multi-source loaders: Perseus scenarios + run directories, Firestore chats, Logfire traces, generic message arrays
+- Multi-source loaders: Agent-harness scenarios + run directories, Firestore chats, Logfire traces, generic message arrays
 - Run-aware UI: routes `/`, `/runs/{id}`, `/runs/{id}/s/{name}`, `/loose`, `/c/{id}`, plus verdict panel (hard / soft / assertions), sticky filter row, ⌘K palette, j/k/[ ]/f/1-4/g r keybindings
 - SSE live-reload plus `/partials/{status,footer,scenarios}` HTMX swaps
 - Parallel file scanning via errgroup with `BenchmarkStoreLoadParallel` budget

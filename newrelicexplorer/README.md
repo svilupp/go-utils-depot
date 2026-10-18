@@ -1,11 +1,11 @@
 # newrelicexplorer (`nrx`)
 
 Find logs and errors in New Relic from one Go binary. `newrelicexplorer` (alias
-`nrx`) queries NerdGraph/NRQL for the EU account and is built for agents: **valid
+`nrx`) queries NerdGraph/NRQL in the EU region and is built for agents: **valid
 JSON on stdout, human status on stderr**, with the full contract self-described
 by `--help` and `nrx schema --json`.
 
-- **Curated services** - target by short fuzzy name (`-s agents`), not raw `entity.name`.
+- **Curated services** - target by short fuzzy name (`-s my-service-api`), not raw `entity.name`.
 - **Templated commands** - `logs`, `errors`, `latency`, `health`, `traces slow`,
   `changes`, `link` wrap the right NRQL (and avoid the `=`-is-case-sensitive trap).
 - **Strict output** - bare JSON arrays, labeled units, ISO timestamps, deterministic
@@ -26,9 +26,9 @@ alias nrx='newrelicexplorer'
 NEW_RELIC_API_KEY=... nrx init   # writes ~/.config/newrelicexplorer/config.yaml (0600), offers `nrx` alias
 nrx check                        # confirm auth + account + region
 nrx services                     # curated inventory (offline)
-nrx logs -s agents --level error --since 1h
-nrx errors -s checkout --since 6h
-nrx logs -s agents --level error --since 1h --human   # same query, readable table
+nrx logs -s my-service-api --level error --since 1h
+nrx errors -s my-service-worker --since 6h
+nrx logs -s my-service-api --level error --since 1h --human   # same query, readable table
 ```
 
 If `nrx` isn't aliased, call `newrelicexplorer` directly.
@@ -64,8 +64,8 @@ in a cell; `link` renders a FIELD/VALUE table. `--human` doesn't apply to
 ```bash
 nrx services                                          # JSON (default; for agents/pipes)
 nrx services --human                                  # aligned table (for humans)
-nrx logs -s agents --level error --since 1h --human   # table of matching logs
-nrx health -s agents --human                          # snapshot as a readable table
+nrx logs -s my-service-api --level error --since 1h --human   # table of matching logs
+nrx health -s my-service-api --human                          # snapshot as a readable table
 ```
 
 `-n`/`--limit` applies to `services` and `services list` too.
@@ -80,10 +80,10 @@ Bootstrap with `nrx schema --json` and `nrx <cmd> --help` before composing queri
 ## Notes
 
 - **Region:** EU only (`one.eu.newrelic.com`); US returns 403 (client retries once).
-- **Curated services:** 17 curated services; 3 intentionally dark (non-reporting). The account ID is read from your config.
-- **Gotcha:** the `ai-*` (Python/FastAPI) services log many real failures at
-  **WARNING, not ERROR**, so `errors` can show `[]` while a service is failing -
-  also run `nrx logs -s <svc> --level warn`. `health.errorRate` is Transaction-based
-  and reads ~0% for worker/ingestion services; lead with `errors`/`logs` there.
+- **Curated services:** use `nrx services` to discover the installed inventory.
+  The account ID is read from your private config.
+- **Log levels:** some applications report failures at WARNING. Check warning
+  logs when error queries are empty. `health.errorRate` is Transaction-based;
+  inspect logs and spans for workers without HTTP transactions.
 
 See [CHANGELOG.md](./CHANGELOG.md) for what's new.

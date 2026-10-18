@@ -1,6 +1,6 @@
 ---
 name: using-firestoreexplorer-cli
-description: Use firestoreexplorer (fsx) for bounded, policy-filtered Firestore reads. Covers command discovery, compact and full results, limits, continuation, and recovery. Triggers: firestoreexplorer, fsx, Firestore document lookup, collection search.
+description: Use firestoreexplorer (fsx) for bounded, policy-filtered Firestore document reads and collection search. Covers authentication profiles, result shapes, continuation, and recovery.
 ---
 
 # Answer Firestore questions with fsx
@@ -58,6 +58,25 @@ Policy runs before projection, summaries, matching, observations, and output.
 Masked or denied fields cannot be searched. Visible IDs may still be sensitive.
 Keep the configured catalog and credentials out of command output.
 
+## Authentication profiles
+
+`--env` selects the pinned project, database, and identity. Reuse a named
+`auth_profiles` entry through `environments.NAME.auth: {profile: NAME}`. Profiles
+support `mode: service_account` with `credentials`, or `mode: access_token` with
+`token_env: FSX_GOOGLE_TOKEN`. Existing inline `auth.service_account` still works;
+do not combine it with a profile reference.
+
+Only the selected live environment reads its token variable or parses its PEM.
+Missing or malformed tokens fail with `AUTH`; there is no credential fallback
+or token refresh. Ask the trusted launcher to provision or renew the token
+without printing it. `check` reports the selected authentication mode.
+
+Profile selection preserves collection policy and IAM. Permission failures do
+not switch identities. Resume cursors with the same environment and request
+options; each request uses current credentials and policy. There is no result cache.
+
+The tool's README includes complete authentication configuration examples.
+
 ## Recovery
 
 | Signal | Next step |
@@ -65,7 +84,7 @@ Keep the configured catalog and credentials out of command output.
 | `CATALOG_MISSING` | Set `catalog_dir` for docs commands; live reads still work |
 | `NOT_FOUND` | Confirm the path and `--env`, then search by an indexed field |
 | `INDEX_MISSING` | Narrow the `--where` filter; fsx does not scan silently |
-| `AUTH`, `CONNECTION`, or `TIMEOUT` | Run `firestoreexplorer check --env NAME` |
+| `AUTH`, `CONNECTION`, or `TIMEOUT` | Run `firestoreexplorer check --env NAME`; renew injected tokens through the launcher |
 | Empty projection | Run `firestoreexplorer schema COLLECTION --sample N` to inspect real fields |
 | More pages remain | Follow `next`; pass its `nextPageToken` or `nextCursor` to `--cursor` when present |
 

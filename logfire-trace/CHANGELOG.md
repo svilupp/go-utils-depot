@@ -104,7 +104,7 @@ Docs-only release, no behavior changes.
 ## [0.10.1] - 2026-05-06
 
 ### Fixed
-- `get -c <conversation-id>` now resolves chats whose Firestore documents store the canonical `conversationId` field (the legacy `layercodeConversationId`-only lookup silently missed ~94% of recent docs)
+- `get -c <conversation-id>` now resolves chats whose Firestore documents store the canonical `conversationId` field (the legacy-only lookup could miss documents using the canonical field)
 
 ### Added
 - `FindChat` falls back to the legacy `layercodeConversationId` field after trying canonical `conversationId`, so older documents written before the rename remain reachable

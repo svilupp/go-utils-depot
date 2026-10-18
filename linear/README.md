@@ -16,7 +16,7 @@ eget svilupp/go-utils-depot --tag 'linear/v0.16.0' --to ~/.local/bin
 
 ```bash
 linear init                # configure your first profile
-linear get AGI-123
+linear get ENG-123
 ```
 
 `init` asks for your API key (<https://linear.app/settings/api>), team, and pins the workspace so mutations can't go to the wrong place.
@@ -66,14 +66,14 @@ profiles:
   work:
     api_key: lin_api_xxx
     team_id: <team-uuid>
-    workspace_key: svilupp           # pinned by `linear init`
+    workspace_key: example-workspace           # pinned by `linear init`
     agent_marker: linear-agent-...    # generated, keep private
     stakeholders:
-      jan: 11111111-1111-1111-1111-111111111111
+      reviewer: 11111111-1111-1111-1111-111111111111
   personal:
     api_key: ${LINEAR_API_KEY_PERSONAL}   # env vars expanded at load
     team_id: <team-uuid>
-    workspace_key: jan-personal
+    workspace_key: example-personal
     agent_marker: linear-agent-...
 ```
 
@@ -85,49 +85,49 @@ Active profile resolution: `--profile <name>` > `LINEAR_PROFILE` > `default_prof
 
 ```bash
 # Read
-linear get AGI-123 --summary
-linear get AGI-123 --json
-linear get AGI-123 --field parent.identifier
+linear get ENG-123 --summary
+linear get ENG-123 --json
+linear get ENG-123 --field parent.identifier
 
 # Create / update
-linear create "Bug: login broken" --parent AGI-123 --label bug
-linear create "Data pipeline spike" --team AGID --estimate 5
-linear update AGI-123 --state QA --priority 2 --assignee jan
-linear update AGI-123 --remove-label dance2:done
-linear update AGI-123 --estimate 3
-linear update AGI-123 --team AGID --state Triage   # state resolves against the new team
+linear create "Bug: login broken" --parent ENG-123 --label bug
+linear create "Data pipeline spike" --team ENG --estimate 5
+linear update ENG-123 --state QA --priority 2 --assignee reviewer
+linear update ENG-123 --remove-label workflow:done
+linear update ENG-123 --estimate 3
+linear update ENG-123 --team ENG --state Triage   # state resolves against the new team
 
 # Comments
-linear comment AGI-123 "ack"                          # inline post
-linear comment list SVI-15 --json --limit 50
-linear comment list SVI-15 --json --filter-prefix "## Workpad"
-linear comment list SVI-15 --json --since 2026-05-24T10:00:00Z --exclude-user <bot-uuid>
-linear comment upsert SVI-15 --marker "## Workpad" --body-file workpad.md --json
+linear comment ENG-123 "ack"                          # inline post
+linear comment list DEMO-15 --json --limit 50
+linear comment list DEMO-15 --json --filter-prefix "## Workpad"
+linear comment list DEMO-15 --json --since 2026-05-24T10:00:00Z --exclude-user <bot-uuid>
+linear comment upsert DEMO-15 --marker "## Workpad" --body-file workpad.md --json
 linear comment edit <comment-id> --body-file new.md
 linear comment delete <comment-id> --yes
 
 # Relations
-linear relate AGI-288 --blocks AGI-286
-linear relate AGI-286 --blocked-by AGI-288          # equivalent to the line above
-linear relate AGI-288 --duplicate-of AGI-290 --json
-linear relations AGI-288 --json
-linear relate AGI-288 --remove <relation-id>
+linear relate ENG-288 --blocks ENG-286
+linear relate ENG-286 --blocked-by ENG-288          # equivalent to the line above
+linear relate ENG-288 --duplicate-of ENG-290 --json
+linear relations ENG-288 --json
+linear relate ENG-288 --remove <relation-id>
 
 # Discovery
-linear issues list --label dance2:active --state Todo --json
+linear issues list --label workflow:active --state Todo --json
 linear issues list --updated-since 2026-05-24T10:00:00Z \
   --updated-before 2026-05-24T11:00:00Z --limit 10 --json
 linear me --json
 
 # Teams / projects / labels / users
 linear teams list --json
-linear projects list --team AGID --json
-linear labels list --team AGID --json
+linear projects list --team ENG --json
+linear labels list --team ENG --json
 linear users list --json
 
 # Projects
-linear project create "Q3 Search Revamp" --team AGID --lead me
-linear project create "Data pipeline" --team AGID --team "Agentic - Data Science" \
+linear project create "Q3 Search Revamp" --team ENG --lead me
+linear project create "Data pipeline" --team ENG --team "Data Platform" \
   --description "Migrate ingestion" --dry-run --json
 ```
 
@@ -136,10 +136,10 @@ linear project create "Data pipeline" --team AGID --team "Agentic - Data Science
 ```json
 {
   "issues": [
-    {"id":"...","identifier":"SVI-42","title":"...",
+    {"id":"...","identifier":"DEMO-42","title":"...",
      "state":{"name":"Todo","type":"unstarted"},
-     "labels":["dance2:active"],"url":"...","updatedAt":"...",
-     "createdAt":"...","team":{"id":"...","key":"AGI","name":"Agentic"}}
+     "labels":["workflow:active"],"url":"...","updatedAt":"...",
+     "createdAt":"...","team":{"id":"...","key":"ENG","name":"Engineering"}}
   ],
   "cursor": null
 }
@@ -158,14 +158,14 @@ When `cursor` is non-null, pass it back via `--cursor <value>` for the next page
 following a cursor; `issues list` explicitly orders the connection by
 `updatedAt`, making the page cursor resumable for a frozen polling window.
 
-Identifiers accept either form: `AGI-123` or the full Linear URL.
+Identifiers accept either form: `ENG-123` or the full Linear URL.
 
 ## For agents / scripts
 
 Pass `--error-json` to get a stable JSON envelope on stderr and branch on `code`:
 
 ```json
-{"status":"error","code":"ISSUE_NOT_FOUND","message":"...","details":{"identifier":"AGI-9999"}}
+{"status":"error","code":"ISSUE_NOT_FOUND","message":"...","details":{"identifier":"ENG-9999"}}
 ```
 
 | Code                 | Exit | Meaning                                                |
@@ -187,8 +187,7 @@ For pollers: branch on exit `9` (or `code == "UPSTREAM_UNAVAILABLE"`) for retrya
 ### Agent provenance
 
 The CLI detects Codex, Claude, and Pi from the same environment and Linux
-process ancestry signals as `agent-playbooks`. Next sets
-`LINEAR_CALLER=postak` explicitly.
+process ancestry signals as `agent-playbooks`. Automated wrappers can set `LINEAR_CALLER=agent`.
 
 For detected agent calls:
 
@@ -196,8 +195,6 @@ For detected agent calls:
   active profile's `agent_marker`
 - comment list and get set `agentAuthored: true` only when that stamp matches
   the current body, then remove the stamp from command output
-- issue create and update record the exact returned `updatedAt` revision when
-  `POSTAK_STATE` is set
 
 Agents do not add a visible signature. Human edits invalidate an old stamp.
 Use `LINEAR_CALLER=human` for a human-intended command launched inside a coding
@@ -217,7 +214,7 @@ Env-var references (`${LINEAR_API_KEY}`) are expanded at load time, so the YAML 
 | Variable               | Purpose                                                                                                                       |
 | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
 | `LINEAR_PROFILE`       | Select active profile (overridden by `--profile`).                                                                            |
-| `LINEAR_CALLER`        | Provenance override: `auto`, `human`, `agent`, `postak`, `codex`, `claude`, or `pi`. Default `auto`.                          |
+| `LINEAR_CALLER`        | Provenance override: `auto`, `human`, `agent`, `codex`, `claude`, or `pi`. Default `auto`.                          |
 | `LINEAR_API_KEY`       | API key for non-interactive `init`. Also referenced from YAML via `${LINEAR_API_KEY}`.                                        |
 | `LINEAR_TEAM_ID`       | Team UUID for non-interactive `init`.                                                                                         |
 | `LINEAR_HTTP_TIMEOUT`  | HTTP client timeout in Go duration form (e.g. `30s`, `1m`, `45s`). Default `30s`. Clamped to `[1s, 5m]`; out-of-range or unparseable values fall back to the default with a stderr warning. |

@@ -44,7 +44,7 @@ slack poll --refresh                    # re-fetch conversations.list before res
 slack poll --oldest-first=false         # newest-first (default is oldest-first)
 slack poll --channel <ID> --since <Slack-ts> --state-file <path> --json
 
-slack mentions --user U08T71B5F0F --json  # new workspace-wide exact @mentions since last run
+slack mentions --user U0123456789 --json  # new workspace-wide exact @mentions since last run
 
 slack send partner-channel-qa "ok" --force  # override write.external=deny for a Slack Connect channel
 
@@ -123,7 +123,7 @@ A `<ref>` containing glob metacharacters (`* ? [`) is instead stored as a
 
 ### Mentions
 
-`slack mentions --user U08T71B5F0F --json` finds new workspace-wide exact
+`slack mentions --user U0123456789 --json` finds new workspace-wide exact
 `<@USER_ID>` mentions of a user since the last run, via `search.messages`
 -- anywhere the token can search, not just the resolved `watch:` set
 `poll` covers. It requires a user token / app with the `search:read`
@@ -142,8 +142,8 @@ instead of silently skipping mentions. Output is oldest-first, matching
 `poll`'s chronological convention.
 
 ```bash
-slack mentions --user U08T71B5F0F --json
-slack mentions --user U08T71B5F0F --state-file /var/lib/postak/slack-mentions.json --json
+slack mentions --user U0123456789 --json
+slack mentions --user U0123456789 --state-file ./slack-mentions-state.json --json
 ```
 
 ### Write safety (Slack Connect)

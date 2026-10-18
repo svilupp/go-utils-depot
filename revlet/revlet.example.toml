@@ -1,0 +1,20 @@
+# auto detects Codex, Claude Code, or Pi; explicit drivers are also supported
+driver = "auto"
+# Leave blank for the detected driver; Codex defaults to gpt-6-astra.
+model = ""
+# Fast profile plus Codex priority scheduling for interactive turns
+fast = true
+service_tier = "fast"
+cloop_url = "http://127.0.0.1:38741"
+cloop_bin = "cloop"
+cloop_token = ""
+auto_start = true
+turn_timeout = "10m"
+
+[openai]
+api_key = ""
+base_url = "https://api.openai.com/v1"
+transcription_model = "gpt-4o-mini-transcribe"
+
+[cache]
+warn_after = "25m"

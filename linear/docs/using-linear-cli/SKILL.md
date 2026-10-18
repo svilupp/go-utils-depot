@@ -9,7 +9,7 @@ Single-binary Go CLI (`linear`) for the Linear API. Profile-driven, multi-worksp
 
 ## When to Use
 
-- **Read a ticket** by identifier or URL (`AGI-123`, `https://linear.app/.../issue/AGI-123/...`)
+- **Read a ticket** by identifier or URL (`ENG-123`, `https://linear.app/.../issue/ENG-123/...`)
 - **List issues** by label / state / assignee / team / created-date with cursor pagination (`issues list`); the team and created-date filters also support analytical reports
 - **Create / update** issues (title, description, parent, labels, state, priority, assignee, `--team`, `--estimate`)
 - **Discover** teams, projects, labels, and users (`teams list`, `projects list`, `labels list`, `users list`)
@@ -17,7 +17,7 @@ Single-binary Go CLI (`linear`) for the Linear API. Profile-driven, multi-worksp
 - **Comments**: create, list, get, edit in place, delete, upsert (use this instead of `curl`-ing `api.linear.app/graphql`)
 - **Idempotent workpad updates**: prefer `comment upsert --marker` over list+edit; the marker is auto-prepended so the next call edits in place
 - **Multi-workspace**: switch via `--profile <name>` or `LINEAR_PROFILE`
-- **Inside a Dance run**: always pass `--profile` and `--error-json` so the orchestrator can route errors
+- **Inside an orchestrated run**: always pass `--profile` and `--error-json` so the orchestrator can route errors
 - **Agent provenance**: comment reads expose CLI-verified `agentAuthored`; do not infer authorship from the shared Linear user
 
 ## First Move
@@ -25,15 +25,15 @@ Single-binary Go CLI (`linear`) for the Linear API. Profile-driven, multi-worksp
 ```bash
 # Profile resolution order: --profile > LINEAR_PROFILE > default_profile in config
 linear profile show                     # what am I configured for
-linear --profile work get SVI-14 -s     # quick sanity read
+linear --profile work get DEMO-14 -s     # quick sanity read
 
 # Read
-linear get AGI-123 -s                   # summary to stdout
-linear get AGI-123 --json               # full JSON to stdout
-linear get AGI-123 --field parent.identifier
+linear get ENG-123 -s                   # summary to stdout
+linear get ENG-123 --json               # full JSON to stdout
+linear get ENG-123 --field parent.identifier
 
 # Comment workflow (workpad pattern)
-linear comment list SVI-15 --json --filter-prefix "## Dance Workpad" \
+linear comment list DEMO-15 --json --filter-prefix "## Review Workpad" \
   | jq -r '.[0].id' \
   | xargs -I{} sh -c 'cat workpad.md | linear comment edit {} --body-file -'
 ```
@@ -46,47 +46,47 @@ linear comment list SVI-15 --json --filter-prefix "## Dance Workpad" \
 | Show specific profile | `linear profile show <name>` |
 | Show profile as YAML | `linear profile show [name] --output yaml` |
 | List profiles | `linear profile list` |
-| Read ticket (file) | `linear get AGI-123` (saves `logs/linear_AGI-123.json`) |
-| Read ticket (stdout) | `linear get AGI-123 --json` |
-| Read one field | `linear get AGI-123 --field parent.identifier` (any dotted JSON path) |
-| Create issue | `linear create "Title" -d "body" --parent AGI-1 --label bug` |
-| Update issue | `linear update AGI-123 --state QA --assignee me` |
-| Clear parent | `linear update AGI-123 --clear-parent` |
-| Clear all labels | `linear update AGI-123 --clear-labels` |
-| Remove selected labels | `linear update AGI-123 --remove-label dance2:done` |
-| Attach a label, creating it if missing | `linear update AGI-123 --label new-label --create-missing-labels` |
-| Create comment | `linear comment create AGI-123 "ack"` |
-| Upsert workpad comment | `linear comment upsert AGI-123 --marker "## Workpad" --body-file workpad.md --json` |
-| List comments | `linear comment list AGI-123 --json --limit 50` |
-| Filter comments by prefix | `linear comment list AGI-123 --json --filter-prefix "## Dance"` |
-| Filter by author | `linear comment list AGI-123 --author jan --json` |
-| Comments since timestamp | `linear comment list AGI-123 --since 2026-05-24T10:00:00Z --json` |
-| Exclude self in poll | `linear comment list AGI-123 --exclude-user <uuid> --json` |
+| Read ticket (file) | `linear get ENG-123` (saves `logs/linear_ENG-123.json`) |
+| Read ticket (stdout) | `linear get ENG-123 --json` |
+| Read one field | `linear get ENG-123 --field parent.identifier` (any dotted JSON path) |
+| Create issue | `linear create "Title" -d "body" --parent ENG-1 --label bug` |
+| Update issue | `linear update ENG-123 --state QA --assignee me` |
+| Clear parent | `linear update ENG-123 --clear-parent` |
+| Clear all labels | `linear update ENG-123 --clear-labels` |
+| Remove selected labels | `linear update ENG-123 --remove-label workflow:done` |
+| Attach a label, creating it if missing | `linear update ENG-123 --label new-label --create-missing-labels` |
+| Create comment | `linear comment create ENG-123 "ack"` |
+| Upsert workpad comment | `linear comment upsert ENG-123 --marker "## Workpad" --body-file workpad.md --json` |
+| List comments | `linear comment list ENG-123 --json --limit 50` |
+| Filter comments by prefix | `linear comment list ENG-123 --json --filter-prefix "## Review"` |
+| Filter by author | `linear comment list ENG-123 --author reviewer --json` |
+| Comments since timestamp | `linear comment list ENG-123 --since 2026-05-24T10:00:00Z --json` |
+| Exclude self in poll | `linear comment list ENG-123 --exclude-user <uuid> --json` |
 | Get one comment | `linear comment get <uuid> --json` |
 | Edit comment in place | `linear comment edit <uuid> --body-file workpad.md` |
 | Edit from stdin | `cat body.md \| linear comment edit <uuid> --body-file -` |
 | Delete comment | `linear comment delete <uuid> --yes` |
-| List issues by label | `linear issues list --label dance2:active --json` |
-| List issues paginated | `linear issues list --label dance2:active --json --cursor "..."` |
+| List issues by label | `linear issues list --label workflow:active --json` |
+| List issues paginated | `linear issues list --label workflow:active --json --cursor "..."` |
 | List a frozen update window | `linear issues list --updated-since <RFC3339> --updated-before <RFC3339> --limit 10 --json` |
 | Print viewer identity | `linear me --json` |
-| Favorite an issue | `linear favorite add AGI-123` |
-| Unfavorite an issue | `linear favorite remove AGI-123` |
+| Favorite an issue | `linear favorite add ENG-123` |
+| Unfavorite an issue | `linear favorite remove ENG-123` |
 | List your favorites | `linear favorite list --json` |
-| Mark an issue as blocking another | `linear relate AGI-288 --blocks AGI-286` |
-| Mark an issue as blocked by another | `linear relate AGI-286 --blocked-by AGI-288` (equivalent to the line above) |
-| Mark issues as related | `linear relate AGI-288 --related AGI-300` |
-| Mark an issue as a duplicate | `linear relate AGI-288 --duplicate-of AGI-290` |
-| List an issue's relations | `linear relations AGI-288 --json` |
-| Remove a relation | `linear relate AGI-288 --remove <relation-id>` (find the id via `linear relations`) |
-| Create issue in a specific team | `linear create "Title" --team AGID` (overrides the profile's team_id; a `--state` name resolves against this team) |
-| Set a point estimate | `linear create "Title" --estimate 5` / `linear update AGI-123 --estimate 3` (accepts values outside `{1,3,5,8}` with a warning) |
-| Move an issue to another team | `linear update AGI-123 --team AGID` |
+| Mark an issue as blocking another | `linear relate ENG-288 --blocks ENG-286` |
+| Mark an issue as blocked by another | `linear relate ENG-286 --blocked-by ENG-288` (equivalent to the line above) |
+| Mark issues as related | `linear relate ENG-288 --related ENG-300` |
+| Mark an issue as a duplicate | `linear relate ENG-288 --duplicate-of ENG-290` |
+| List an issue's relations | `linear relations ENG-288 --json` |
+| Remove a relation | `linear relate ENG-288 --remove <relation-id>` (find the id via `linear relations`) |
+| Create issue in a specific team | `linear create "Title" --team ENG` (overrides the profile's team_id; a `--state` name resolves against this team) |
+| Set a point estimate | `linear create "Title" --estimate 5` / `linear update ENG-123 --estimate 3` (accepts values outside `{1,3,5,8}` with a warning) |
+| Move an issue to another team | `linear update ENG-123 --team ENG` |
 | List teams | `linear teams list --json` |
-| List projects (optionally by team) | `linear projects list --team AGID --json` |
-| List labels (optionally by team) | `linear labels list --team AGID --json` |
+| List projects (optionally by team) | `linear projects list --team ENG --json` |
+| List labels (optionally by team) | `linear labels list --team ENG --json` |
 | List users (active only / all) | `linear users list --json` / `linear users list --all --json` |
-| Create a project (epic) | `linear project create "Q3 Search Revamp" --team AGID --lead me` |
+| Create a project (epic) | `linear project create "Q3 Search Revamp" --team ENG --lead me` |
 
 For canonical detail run `linear <cmd> --help` (do not duplicate it here).
 
@@ -101,10 +101,10 @@ profiles:
     api_key: ${LINEAR_API_KEY_PERSONAL}
     team_id: <uuid>
     project_id: <id>
-    workspace_key: svilupp
+    workspace_key: example-workspace
     agent_marker: linear-agent-... # generated by init; keep private
     stakeholders:
-      jan: <user-uuid>
+      reviewer: <user-uuid>
   work:
     api_key: lin_api_xxx
     team_id: <uuid>
@@ -131,14 +131,12 @@ whether it is configured but never prints the value.
 Use the CLI normally. Do not add a manual bot signature.
 
 - Codex, Claude, and Pi calls are detected from harness environment markers
-  and Linux process ancestry. `LINEAR_CALLER=postak` is the explicit Postak path.
+  and Linux process ancestry. Automated wrappers can use `LINEAR_CALLER=agent`.
 - Agent comment create, edit, and upsert calls append an invisible HMAC stamp.
 - `comment list --json` and `comment get --json` return
   `agentAuthored: true` only for a valid stamp on the current body, then hide
   the stamp from command output.
 - Human edits invalidate the stamp, including edits under the same Linear user.
-- Agent issue create and update calls write an exact revision receipt beside
-  `POSTAK_STATE` when it is set.
 
 Use `LINEAR_CALLER=human` for an intentional human command inside a coding
 harness. Never set it in an agent workflow. Use `LINEAR_CALLER=agent` only for
@@ -150,8 +148,8 @@ an automated wrapper the detector cannot identify.
 
 ```bash
 # First call creates; subsequent calls edit the same comment in place.
-linear comment upsert SVI-15 \
-  --marker "## Dance Workpad" \
+linear comment upsert DEMO-15 \
+  --marker "## Review Workpad" \
   --body-file workpad.md --json
 # => {"id":"<uuid>","created":true|false}
 ```
@@ -162,7 +160,7 @@ so the next upsert matches by prefix and edits instead of duplicating.
 ### Find the workpad comment by prefix → edit in place (manual flow)
 
 ```bash
-COMMENT_ID=$(linear comment list SVI-15 --json --filter-prefix "## Dance Workpad" \
+COMMENT_ID=$(linear comment list DEMO-15 --json --filter-prefix "## Review Workpad" \
   | jq -r '.[0].id')
 [ -n "$COMMENT_ID" ] && [ "$COMMENT_ID" != "null" ] || { echo "no workpad"; exit 1; }
 linear comment edit "$COMMENT_ID" --body-file workpad.md
@@ -171,7 +169,7 @@ linear comment edit "$COMMENT_ID" --body-file workpad.md
 ### Poll for new human comments
 
 ```bash
-linear comment list SVI-15 --json \
+linear comment list DEMO-15 --json \
   --since 2026-05-24T10:00:00Z |
   jq '[.[] | select(.agentAuthored != true)]'
 ```
@@ -184,7 +182,7 @@ It cannot separate agent and human writes made through the same account.
 ```bash
 CURSOR=""
 while :; do
-  PAGE=$(linear issues list --label dance2:active --json ${CURSOR:+--cursor "$CURSOR"})
+  PAGE=$(linear issues list --label workflow:active --json ${CURSOR:+--cursor "$CURSOR"})
   echo "$PAGE" | jq -r '.issues[].identifier'
   CURSOR=$(echo "$PAGE" | jq -r '.cursor // empty')
   [ -z "$CURSOR" ] && break
@@ -213,11 +211,11 @@ linear comment get <uuid> --json \
 linear teams list --json
 
 # 2. Create the project ('epic') scoped to that team.
-PROJECT_ID=$(linear project create "Q3 Search Revamp" --team AGID --lead me --json | jq -r .id)
+PROJECT_ID=$(linear project create "Q3 Search Revamp" --team ENG --lead me --json | jq -r .id)
 
 # 3. Create tickets in the project, with an estimate.
-linear create "Migrate ingestion" --team AGID --project "$PROJECT_ID" --estimate 5 --json
-linear create "Backfill index" --team AGID --project "$PROJECT_ID" --estimate 3 --json
+linear create "Migrate ingestion" --team ENG --project "$PROJECT_ID" --estimate 5 --json
+linear create "Backfill index" --team ENG --project "$PROJECT_ID" --estimate 3 --json
 ```
 
 `--team` on `create`/`update` always overrides the profile's default team,
@@ -229,7 +227,7 @@ warning rather than rejected, since teams can configure their own scale.
 ### Find your last comment by author → edit
 
 ```bash
-COMMENT_ID=$(linear comment list AGI-123 --author jan --json \
+COMMENT_ID=$(linear comment list ENG-123 --author reviewer --json \
   | jq -r 'sort_by(.createdAt) | reverse | .[0].id')
 linear comment edit "$COMMENT_ID" --body "follow-up"
 ```
@@ -237,7 +235,7 @@ linear comment edit "$COMMENT_ID" --body "follow-up"
 ### Bulk-delete throwaway test comments
 
 ```bash
-linear comment list AGI-123 --json --filter-prefix "TEST:" \
+linear comment list ENG-123 --json --filter-prefix "TEST:" \
   | jq -r '.[].id' \
   | while read id; do linear comment delete "$id" --yes; done
 ```
@@ -245,24 +243,24 @@ linear comment list AGI-123 --json --filter-prefix "TEST:" \
 ### Capture comment ID at creation time
 
 ```bash
-ID=$(linear --profile personal --error-json comment create SVI-15 "TEST" --json | jq -r .id)
+ID=$(linear --profile personal --error-json comment create DEMO-15 "TEST" --json | jq -r .id)
 linear --profile personal --error-json comment edit "$ID" --body "TEST edited"
 ```
 
 ### Create issue → assign → set state → comment
 
 ```bash
-ID=$(linear create "Bug: login fails" -d "repro..." --parent AGI-1 --label bug --json \
+ID=$(linear create "Bug: login fails" -d "repro..." --parent ENG-1 --label bug --json \
   | jq -r .identifier)
-linear update "$ID" --assignee jan --state "In Progress"
+linear update "$ID" --assignee reviewer --state "In Progress"
 linear comment create "$ID" "started"
 ```
 
 ### Cross-workspace read (without changing default)
 
 ```bash
-linear --profile work get SVI-14 -s
-LINEAR_PROFILE=work linear comment list SVI-14 --json
+linear --profile work get DEMO-14 -s
+LINEAR_PROFILE=work linear comment list DEMO-14 --json
 ```
 
 ## Error Handling
@@ -273,8 +271,8 @@ Use `--error-json` on every agent invocation. Errors go to **stderr** as a stabl
 {
   "status": "error",
   "code": "ISSUE_NOT_FOUND",
-  "message": "issue SVI-99999 not found in workspace \"svilupp\" (profile \"personal\").\n...",
-  "details": {"identifier": "SVI-99999", "profile": "personal", "workspace_key": "svilupp"}
+  "message": "issue DEMO-99999 not found in workspace \"example-workspace\" (profile \"personal\").\n...",
+  "details": {"identifier": "DEMO-99999", "profile": "personal", "workspace_key": "example-workspace"}
 }
 ```
 
@@ -315,7 +313,7 @@ out=$(linear --error-json --profile work comment edit "$id" --body-file - 2> err
 ## DO / DON'T
 
 **DO**
-- Pass `--profile <name>` explicitly inside any Dance / orchestrator run; don't rely on the user's shell `default_profile`.
+- Pass `--profile <name>` explicitly inside any orchestrator run; don't rely on the user's shell `default_profile`.
 - Use `--error-json` for every agent-driven invocation and parse the envelope.
 - Let the CLI add and remove provenance. Do not write a manual signature.
 - Use `--body-file -` (stdin) for multi-line comment bodies — avoids shell-quoting bugs and temp files.
@@ -327,7 +325,7 @@ out=$(linear --error-json --profile work comment edit "$id" --body-file - 2> err
 
 **DON'T**
 - **Don't `curl https://api.linear.app/graphql` directly** — leaks `LINEAR_API_KEY` in process listings, bypasses the workspace guard, and skips the structured error envelope.
-- **Don't omit `--profile` in a Dance run** — the active profile depends on the caller's environment and can silently flip to `personal`.
+- **Don't omit `--profile` in an orchestrated run** — the active profile depends on the caller's environment and can silently flip to `personal`.
 - **Don't set `LINEAR_CALLER=human` in an agent run**; it disables provenance and makes the write look like human input to pollers.
 - **Don't override `WORKSPACE_MISMATCH`** — it means the api_key and `workspace_key` disagree; the only correct fix is re-running `linear init` for that profile.
 - Don't paste comment bodies inline if they contain backticks, `$`, or newlines — use `--body-file` / `-f`.
@@ -339,14 +337,14 @@ out=$(linear --error-json --profile work comment edit "$id" --body-file - 2> err
 - `comment list` filters (`--filter-prefix`, `--author`) run **client-side** after fetching `--limit` (default 50). Bump `--limit` if older comments may match.
 - `comment edit` requires exactly one of `--body` or `--body-file`. `--body-file -` reads stdin.
 - **Empty stdin on `--body-file -` is rejected** with `VALIDATION_ERROR` to prevent accidentally clearing a comment when an upstream pipeline produced nothing. Clearing a comment body is not supported (`--body ""` also errors); edit the body to a single space or marker instead.
-- **Comment IDs are Linear UUIDs** (e.g., `9b8a8f12-4fcb-4234-9f0b-1745ce8ee85e`). Don't try to address comments by index, position, or human label. `comment get/edit/delete` pre-validate the UUID format and fail fast with `VALIDATION_ERROR` (hint: use `comment list <issue> --json` to find IDs) rather than wasting a network call ending in `COMMENT_NOT_FOUND`.
+- **Comment IDs are Linear UUIDs** (e.g., `11111111-1111-4111-8111-111111111111`). Don't try to address comments by index, position, or human label. `comment get/edit/delete` pre-validate the UUID format and fail fast with `VALIDATION_ERROR` (hint: use `comment list <issue> --json` to find IDs) rather than wasting a network call ending in `COMMENT_NOT_FOUND`.
 - `comment delete` prompts unless `--yes` is passed. Always use `--yes` in scripts.
 - `update` only changes fields you pass; state is never auto-applied — pass `--state` explicitly.
-- `--assignee jan` resolves via the profile's `stakeholders` map first, then by name/email/UUID. `--assignee me` resolves to the api_key owner.
+- `--assignee reviewer` resolves via the profile's `stakeholders` map first, then by name/email/UUID. `--assignee me` resolves to the api_key owner.
 - `linear get` saves to `logs/linear_<ID>.json` by default. Use `-s` for summary-to-stdout, `--json` for raw JSON, `-o <path>` for custom path.
 - `linear get` rejects combining `--summary` / `--json` / `--field` / `--output` — pick exactly one. (Enforced at `cmd/get.go:60-77`.)
 - `--field` accepts arbitrary dotted JSON paths into the issue payload (e.g. `id`, `state.name`, `assignee.email`, `parent.identifier`) — not just `parent.identifier`.
-- The legacy positional form `linear comment SVI-15 "msg"` still works but new scripts should use `linear comment create SVI-15 "msg"`.
+- The legacy positional form `linear comment DEMO-15 "msg"` still works but new scripts should use `linear comment create DEMO-15 "msg"`.
 - `comment upsert --marker M --body B` auto-prepends `M + "\n\n"` to `B` when `B` doesn't already start with `M`. This is what makes the next `upsert` find the same comment by prefix; do not double-include the marker in your body content.
 - `comment list --since` is server-side (Linear's `comments(filter: {createdAt: {gt: ...}})`); `--exclude-user` is client-side. Both go through `ListCommentsFiltered` rather than `ListComments`.
 - `issues list` **does** apply the active profile's configured team by default (same as every other command) unless `--all-teams` or `--team <key>` is passed — it is not an unfiltered, defaults-free query. Use `--cursor` from the previous page's `cursor` field for pagination (null means last page).

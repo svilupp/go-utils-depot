@@ -4,7 +4,7 @@ Local web viewer for AI conversation traces. Visual pair to [`logfire-trace`](..
 
 ## When to use it
 
-You have AI agent traces — Logfire JSON, Firestore chat exports, Perseus run directories, or generic `[{role, content}]` arrays — and you want a browsable dashboard rather than CLI output. `logfire-viewer` (alias `lfv`) loads them from disk, fuses related records by `ConvKey`, and serves a local dashboard at `127.0.0.1:18081` plus a JSON/SSE API for agents.
+You have AI agent traces — Logfire JSON, Firestore chat exports, Agent-harness run directories, or generic `[{role, content}]` arrays — and you want a browsable dashboard rather than CLI output. `logfire-viewer` (alias `lfv`) loads them from disk, fuses related records by `ConvKey`, and serves a local dashboard at `127.0.0.1:18081` plus a JSON/SSE API for agents.
 
 - `lfv serve <paths>` -- start the dashboard on `127.0.0.1:18081`
 - `lfv open <file>` -- open one or more files in the viewer
@@ -61,8 +61,8 @@ Then open http://127.0.0.1:18081.
 Detected automatically:
 
 - **Logfire trace** -- flat span arrays from `lft get <id>` or `replay_traces/*.json`
-- **Firestore chat** -- exported `ai-chat` documents
-- **Perseus scenario / summary / run directory** -- `{run}/summary.json` plus `{run}/conversations/*.json`
+- **Firestore chat** -- exported conversation documents
+- **Agent-harness scenario / summary / run directory** -- `{run}/summary.json` plus `{run}/conversations/*.json`
 - **Replay session directory** -- a folder of `lft.replay.receipt/v2` files (v1 remains readable) from `lft replay`; auto-clustered by `source_trace_id` × `input_sha`
 - **Generic messages** -- plain `[{role, content}, ...]` arrays
 

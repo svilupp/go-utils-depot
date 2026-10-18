@@ -106,7 +106,7 @@ The format is based on Keep a Changelog, adapted for this repository.
   unfiltered and unpaginated. Now filters `workflowStates` server-side by
   team and paginates fully when no team filter applies.
 - `--label` resolution failed to find a label name that existed beyond the
-  workspace's first 50 issue labels (e.g. `dance2:done`), because
+  workspace's first 50 issue labels (e.g. `workflow:done`), because
   `issueLabels` was queried unpaginated. This also meant
   `--create-missing-labels` could create a duplicate label for a name that
   already existed on a later page. `issueLabels` is now paginated fully.
@@ -133,7 +133,7 @@ The format is based on Keep a Changelog, adapted for this repository.
 - Agent comments now carry invisible, per-profile provenance. Comment reads
   expose verified `agentAuthored` state without showing the stamp, while human
   edits remain human input.
-- Agent issue create and update calls can record exact Next revision receipts.
+- Agent issue create and update calls can record exact revision receipts for external automation.
   `LINEAR_CALLER=human` provides an explicit override inside coding harnesses.
 
 ### Setup
@@ -165,7 +165,7 @@ The format is based on Keep a Changelog, adapted for this repository.
 
 - HTTP client timeout default bumped from 10s to 30s; override via the
   new `LINEAR_HTTP_TIMEOUT` env var (Go duration; clamped to `[1s, 5m]`).
-  Fixes spurious dance2 poller failures against the slower Linear
+  Fixes spurious external automation poller failures against the slower Linear
   GraphQL paths.
 
 ### Fixed
@@ -181,7 +181,7 @@ The format is based on Keep a Changelog, adapted for this repository.
 - `linear issues list` (L1): list issues with `--label` (repeatable, AND),
   `--state`, `--assignee`, `--limit`, `--cursor`, and `--json` flags.
   JSON envelope shape `{"issues":[...], "cursor": "..." | null}` with
-  cursor-based pagination. Unblocks dance2's label-poller use case.
+  cursor-based pagination. Unblocks external automation's label-poller use case.
 - `linear me` (L4): print the authenticated viewer (id, email, name,
   organization url-key) as text or `--json`. Backed by the cached
   `ViewerInfo` round-trip.
@@ -244,7 +244,7 @@ The format is based on Keep a Changelog, adapted for this repository.
   Linear's `CommentCreateInput` does not currently expose an
   `idempotencyKey` field. The SQLite client-side dedupe fallback is
   disproportionate complexity for the ~5 LOC savings it would yield
-  on the dance2 side. Revisit if/when Linear adds native support, or
+  on the external automation side. Revisit if/when Linear adds native support, or
   if the crash window becomes a real problem in production.
 
 ## [0.6.0] - 2026-05-09

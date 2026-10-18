@@ -38,9 +38,10 @@ export PATH="$HOME/.local/bin:$PATH"
 | [slack](slack/) | Slack Web API CLI: cached reads, channel polling, rate-limited | `eget svilupp/go-utils-depot --tag 'slack/' --to ~/.local/bin` |
 | [argocdexplorer](argocdexplorer/) | Read-only ArgoCD explorer CLI (health, sync, logs, triage) | `eget svilupp/go-utils-depot --tag 'argocdexplorer/' --to ~/.local/bin` |
 | [lightdashctl](lightdashctl/) | Lightdash discovery, query, and content-as-code CLI (`ldc`) | `eget svilupp/go-utils-depot --tag 'lightdashctl/' --to ~/.local/bin` |
-| [dbexplorer](dbexplorer/) | Read-only PostgreSQL and BigQuery query and catalog CLI (`dbx`) | `eget svilupp/go-utils-depot --tag 'dbexplorer/' --to ~/.local/bin` |
-| [firestoreexplorer](firestoreexplorer/) | Read-only, policy-filtered Firestore explorer (`fsx`) | `eget svilupp/go-utils-depot --tag 'firestoreexplorer/' --to ~/.local/bin` |
+| [dbexplorer](dbexplorer/) | Read-only PostgreSQL and BigQuery CLI with named auth profiles (`dbx`) | `eget svilupp/go-utils-depot --tag 'dbexplorer/' --to ~/.local/bin` |
+| [firestoreexplorer](firestoreexplorer/) | Read-only, policy-filtered Firestore explorer with named auth profiles (`fsx`) | `eget svilupp/go-utils-depot --tag 'firestoreexplorer/' --to ~/.local/bin` |
 | [agenticforge](agenticforge/) | Plan-first installer for CLIs, configs, and agent skills (`agf`) | `eget svilupp/go-utils-depot --tag 'agenticforge/' --to ~/.local/bin` |
+| [revlet](revlet/) | Browser document review, batch annotation, and optional AI assistance | `eget svilupp/go-utils-depot --tag 'revlet/' --file 'revlet' --to ~/.local/bin` |
 
 ## Updating
 
@@ -64,3 +65,5 @@ Tools are built for these platforms where the source module supports them:
 | Windows | amd64 |
 
 `lightdashctl` and `dbexplorer` currently ship macOS and Linux binaries only.
+Revlet's live-browser mode requires extracting its complete platform archive;
+see [Revlet installation](revlet/#install).

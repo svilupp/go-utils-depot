@@ -2,7 +2,7 @@
 name: using-new-relic-explorer-cli
 description: >-
   Operate the newrelicexplorer (nrx) CLI to find logs and errors in New Relic
-  (EU account) via NRQL/NerdGraph - search a service's logs, surface grouped
+  (EU region) via NRQL/NerdGraph - search a service's logs, surface grouped
   errors, check latency/health/slow traces, list deploys, resolve curated
   service names to entities, build shareable NR links, or run raw NRQL. Covers
   the stdout-JSON / stderr-human contract, service/env resolution, and
@@ -63,21 +63,21 @@ Identify the service with `-s <short name>` (fuzzy). `--since` takes `30m`/`1h`/
 
 ```bash
 # logs - find logs that say X, or error logs
-nrx logs -s agents --contains "timed out"          # literal substring; positional arg also works
-nrx logs -s agents --level error --since 15m
-nrx logs -s agents --env uat --limit 20
+nrx logs -s my-service-api --contains "timed out"          # literal substring; positional arg also works
+nrx logs -s my-service-api --level error --since 15m
+nrx logs -s my-service-api --env uat --limit 20
 
 # errors - top messages, grouped (FACET); fastest "what's failing"
-nrx errors -s checkout --since 6h
+nrx errors -s my-service-worker --since 6h
 
 # latency / health / slow traces - mind the units
-nrx latency -s agents -e production --percentile 50,95,99 -S 1h   # unit: seconds
+nrx latency -s my-service-api -e production --percentile 50,95,99 -S 1h   # unit: seconds
 nrx health  -s my-service-api                                      # requests/errorRate/rpm/percentiles
-nrx traces slow -s agents --min-ms 2000 -S 30m                     # unit: ms
+nrx traces slow -s my-service-api --min-ms 2000 -S 30m                     # unit: ms
 
 # deploys (account-wide, sparse), shareable link, raw NRQL
 nrx changes -n 200
-nrx link -s agents -e production --errors -S 30m
+nrx link -s my-service-api -e production --errors -S 30m
 nrx query "SELECT count(*) FROM Log SINCE 1 hour ago"
 ```
 
@@ -108,15 +108,9 @@ Authoritative and never stale - prefer them over memorizing flags.
   services), `no_env` (single entity), `match` (broad pattern spanning envs). For
   `no_env` and `match`, **`--env` is ignored** (CLI prints a stderr advisory) - don't
   read env scoping into those results.
-- Cases to remember: `my-service-inventory` has **staging/dev only, no production**
-  (use `--env staging`); `agents-intelligence` and
-  `agents-evaluations` are `no_env`; `agents-analytics` is `match`
-  (mixes prod + dev).
-- **17 curated services**; 3 are intentionally dark (`reporting:false`):
-  `my-service-cron`, `my-service-web`, `other-worker`.
-- Names above are illustrative placeholders — always confirm the real,
-  current entity names for your account with `nrx services` and
-  `nrx services list` rather than assuming these examples still match.
+- Use `nrx services` and `nrx services list` to discover names, environment
+  shapes, and reporting status for the installed inventory. Examples use
+  synthetic service names; replace them with names from that output.
 
 ## Filters
 
@@ -159,10 +153,9 @@ Authoritative and never stale - prefer them over memorizing flags.
 
 ## Best practices (from heavy real use)
 
-1. **WARNING-level failures are invisible to `errors`.** The `ai-*` (Python/FastAPI)
-   services log real failures - missing API keys, DB auth, GCS 403s, health 503s - at
-   **WARNING**. `errors` and `logs --level error` return `[]` while the service is
-   failing. Always also `nrx logs -s <svc> --level warn` and sweep targeted phrases.
+1. **Check warning logs too.** Some applications report operational failures at
+   WARNING. Error-only queries can be empty while a service is failing. Also use
+   `nrx logs -s <svc> --level warn` with targeted phrases.
 2. **`health.errorRate` is Transaction-based** - ~0% for worker/ingestion/pipeline
    services (they fail in Log/Span/PubSub, not HTTP). Lead with `errors`/`logs`/`traces
    slow`; reserve `health` for HTTP services.
@@ -179,12 +172,12 @@ Authoritative and never stale - prefer them over memorizing flags.
    nrx query "SELECT count(*) FROM Log WHERE level LIKE 'err%' FACET entity.name SINCE 6 hours ago LIMIT 30"
    nrx query "SELECT count(*) FROM Log WHERE entity.name = '<ent>' FACET message SINCE 6 hours ago LIMIT 30"
    ```
-   Many high-traffic entities aren't curated (`other-app`, `other-server`,
-   `tax-calculation-service`, `returns-server`, `billing-server`) - find them via FACET, not `-s`.
+   Entities outside the curated inventory can appear in account-wide results.
+   Discover them with FACET before narrowing the query.
 5. **`changes` excludes curated services' own naming prefix**, so deploy-to-error correlation isn't possible
    there. Find an error's onset from logs instead - the first non-zero bucket:
    ```bash
    nrx query "SELECT count(*) FROM Log WHERE entity.name LIKE '<svc>:prod%' AND message = '<exact>' TIMESERIES 30 minutes SINCE 7 days ago"
    ```
-6. **Broken vs noisy:** pair-equal counts across two messages (e.g. 7,140/7,140) = tight
-   failing loop (real). High-volume WARN floods = usually cost/noise. Quantify before escalating.
+6. Compare repeated-message counts and timestamps before inferring a retry loop.
+   Quantify warning volume and impact before escalating.
