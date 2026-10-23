@@ -20,7 +20,7 @@ schema, and docs to resolve specific uncertainty.
 | Inspect one resource | `lightdashctl discover get dashboard <REF>` |
 | Find fields in an explore | `lightdashctl discover search latency --kind field --explore <EXPLORE_REF>` |
 | Read metric notes | `lightdashctl docs search latency --kind metric` then `lightdashctl docs read <REF>` |
-| Create a local bundle | `lightdashctl new --from <TEMPLATE_OR_REF> --as demo --space <SPACE_REF>` |
+| Create a local bundle | `lightdashctl new ./demo --from <TEMPLATE_OR_REF> --as demo --space <SPACE_REF>` |
 | Pull remote content | `lightdashctl pull <REF> ./bundle` |
 | Compile a query | `lightdashctl analyze query ./query.yml --compile-only` |
 | Preview a publish | `lightdashctl status ./bundle` |
@@ -32,7 +32,7 @@ The former `build` commands and `docs copy` still work as deprecated aliases.
 ## Output contract
 
 ```bash
-lightdashctl discover search latency --kind dashboard 2>/dev/null | jq .
+lightdashctl discover search latency --kind dashboard | jq .
 ```
 
 - stdout is JSON with `contract_version: 1` by default.
@@ -94,3 +94,11 @@ Do not resubmit a query to poll it.
 | Empty discovery search | Use a shorter token, then fetch by UUID |
 | `AMBIGUOUS` | Pass the exact UUID |
 | Query timeout | Run `lightdashctl analyze status HANDLE` |
+
+## Publication recovery and local templates
+
+`pull UUID BUNDLE --into` accepts the remote baseline into existing bundle state without replacing local files. Preserve receipts and `.ldc-state.json`. On `UNKNOWN_WRITE_OUTCOME`, reconcile the recorded identity before retrying; do not rebuild state by hand.
+
+For a new report, use `new` to create fresh identity and clone charts. A fork does not inherit sharing or verification. Compile changed queries, reconcile representative data, and check rendered filters before applying. `apply --check-data` includes data validation; inspect `status` afterward for remaining writes.
+
+The public release does not bundle tenant documentation or templates. Configure `knowledge_dir` with your own files to use local template names. Use verified resource IDs when forking live content.

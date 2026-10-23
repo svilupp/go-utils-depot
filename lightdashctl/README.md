@@ -34,7 +34,7 @@ Provide a local query file or bundle directory before running these commands:
 
 ```bash
 lightdashctl analyze query ./query.yml --compile-only
-lightdashctl new --from <TEMPLATE_OR_REF> --as demo --space <SPACE_REF>
+lightdashctl new ./demo --from <TEMPLATE_OR_REF> --as demo --space <SPACE_REF>
 lightdashctl status ./demo
 lightdashctl apply ./demo
 ```
@@ -68,3 +68,5 @@ lightdashctl apply ./demo
 
 See [CHANGELOG.md](CHANGELOG.md) and
 [docs/using-lightdashctl-cli/SKILL.md](docs/using-lightdashctl-cli/SKILL.md).
+
+The release contains the CLI only. Configure `knowledge_dir` with your own documentation and templates; no tenant knowledge pack is bundled.

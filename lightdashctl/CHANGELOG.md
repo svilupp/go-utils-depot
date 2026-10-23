@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.0 - 2026-10-23
+
+- Improve publication recovery and UUID pulls. `pull --into` accepts the remote baseline without changing local files.
+- Reduce false custom-field warnings and clarify query and authoring diagnostics.
+- Use generic help and configuration defaults; tenant knowledge packs and templates are not bundled.
+
 ## 0.2.0 - 2026-09-27
 
 ### Changed
