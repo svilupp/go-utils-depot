@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Keep it brief!
 
+## 0.17.2 - 2026-10-23
+
+- Document region-aware trace, span, and conversation deep links using generic identifiers in CLI help and the usage skill.
+
 ## [0.17.1] - 2026-09-27
 
 ### Fixed

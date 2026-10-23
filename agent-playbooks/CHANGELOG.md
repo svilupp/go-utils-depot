@@ -1,5 +1,42 @@
 # Changelog
 
+## 0.8.1 - 2026-10-21
+
+### Changed
+
+- Shortened the loader skill around playbook retrieval, repository references, and subagent selection; moved setup and advanced details into references.
+- Router synchronization installs and checks the skill's bundled references alongside its entrypoint.
+
+## 0.8.0 - 2026-10-21
+
+### Added
+
+- Global repository mappings with aliases, descriptions, and optional work/personal swimlanes.
+- `tip repos [QUERY]` for the full map or exact/substring name and alias matches, including `repo://` references.
+- Router guidance that triggers on `repo://` references and directs agents to verify targets and local instructions.
+
+### Changed
+
+- Project skill-folder discovery is enabled by default, with global defaults and project overrides.
+- Implicit project discovery scans from the Git worktree root.
+
+### Fixed
+
+- A bare `~` config path now expands to the home directory.
+
+## 0.7.0 - 2026-10-20
+
+### Added
+
+- Catalog scopes, the `index` alias, and project/global JSON provenance.
+- Opt-in bounded project skill-folder discovery with exclusions and safe pruning.
+- Suggested read commands preserve config, harness, scope, and project context.
+
+### Changed
+
+- Clarified CLI help and guides with verified examples and discovery defaults.
+
+
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),

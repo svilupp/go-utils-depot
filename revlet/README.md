@@ -4,7 +4,7 @@ Review Markdown, HTML, website snapshots, or live Chromium tabs in a browser.
 Annotate and rate document batches without an AI provider, or discuss selected
 artifacts with an AI reviewer through Cloop.
 
-Next release: `revlet/v0.2.0`.
+Release: `revlet/v0.2.1`.
 
 ## Install
 

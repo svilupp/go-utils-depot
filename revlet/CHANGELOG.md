@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.1 - 2026-10-23
+
+- Rebuild with Go 1.27.2 and `golang.org/x/net` 0.60.0; align lint tooling with the patched toolchain.
+
 ## 0.2.0 - 2026-10-18
 
 ### Added

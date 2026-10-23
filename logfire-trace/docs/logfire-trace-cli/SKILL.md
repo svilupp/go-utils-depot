@@ -188,3 +188,41 @@ saved_items directory directly.
 The CLI prints actionable hints for every common failure (no server, file
 not found, file too big, format unrecognised, etc.). Surface them to the user
 as-is rather than rephrasing — they're written to be self-explanatory.
+
+## Logfire Deep Links
+
+Compose links from the configured profile's regional base URL, org, and project
+(see `logfire-trace profiles`), plus a time window that contains the trace. There is
+no universal org/project; never reuse one across profiles. Targeted span links
+include all four params:
+
+- `traceId` and `spanId`
+- `last`: JSON-string duration, URL-encoded (`%221d%22` = `"1d"`); widen (`%227d%22`) if the trace is older
+- `q`: SQL filtering both IDs, URL-encoded
+
+```text
+https://logfire-eu.pydantic.dev/<org>/<project>?traceId=<trace_id>&spanId=<span_id>&last=%221d%22&q=trace_id%3D%27<trace_id>%27+AND+span_id%3D%27<span_id>%27
+```
+
+Example (org `<org>`, project `<project>`, EU region):
+`https://logfire-eu.pydantic.dev/<org>/<project>?traceId=<trace_id>&spanId=<span_id>&last=%221d%22&q=trace_id%3D%27<trace_id>%27+AND+span_id%3D%27<span_id>%27`
+
+Query/filter links need only `last` and `q`; `traceId` and `spanId` are not required.
+Complex example: all matching spans of one conversation, matching either conversation
+attribute, limited to four span types, last hour:
+
+```text
+https://logfire-eu.pydantic.dev/<org>/<project>?last=%221h%22&q=%28attributes-%3E%3E%27conversation.id%27+%3D+%27<conversation_id>%27+OR+attributes-%3E%3E%27conversationId%27+%3D+%27<conversation_id>%27%29+AND+%28span_name+%3D+%27ai.streamText%27+OR+span_name+%3D+%27ai.generateText%27+OR+span_name+%3D+%27ai.toolCall%27+OR+span_name+%3D+%27agent+run%27%29
+```
+
+Decoded `q` (readable SQL):
+
+```sql
+(attributes->>'conversation.id' = '<conversation_id>'
+ OR attributes->>'conversationId' = '<conversation_id>')
+AND (span_name = 'ai.streamText' OR span_name = 'ai.generateText'
+     OR span_name = 'ai.toolCall' OR span_name = 'agent run')
+```
+
+This matches spans whose `conversation.id` or `conversationId` attribute equals the
+ID, and whose name is `ai.streamText`, `ai.generateText`, `ai.toolCall`, or `agent run`.

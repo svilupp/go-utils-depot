@@ -256,3 +256,9 @@ unavailable (retryable), `10` write blocked (send/dm refused by the
 - Cobra-level errors (unknown command, bad flags, wrong arg count) exit
   `8` (VALIDATION_ERROR), same as other input-validation failures, per
   the documented exit-code contract.
+
+## DM activity and scoped polling
+
+`slack dm-activity --since <Slack-ts> --json` finds one-to-one DM activity candidates and old thread roots. If `complete` is false, retain the time boundary and fall back to exact polling.
+
+After a complete search, pass `--activity-complete` and repeat `--thread-hint <root-ts>` on a scoped `slack poll --channel <ID> --since <Slack-ts>` call. This avoids scanning every historical thread. Reconcile periodically with exact polling because search indexing can lag.

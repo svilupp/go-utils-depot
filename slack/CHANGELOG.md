@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, adapted for this repository.
 
+## [0.4.0] - 2026-10-23
+
+### Added
+
+- Read-only `dm-activity` discovery with explicit incomplete-coverage reporting.
+- Scoped polling with activity-completeness and old-thread hints, reducing
+  history scans while retaining periodic exact reconciliation.
+
 ## [0.3.0] - 2026-09-27
 
 ### Added
